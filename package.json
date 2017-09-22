@@ -1,0 +1,20 @@
+{
+  "name": "albatross",
+  "version": "1.0.0",
+  "description": "",
+  "main": "run.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node run.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/glebreutov/albatross.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/glebreutov/albatross/issues"
+  },
+  "homepage": "https://github.com/glebreutov/albatross#readme"
+}
