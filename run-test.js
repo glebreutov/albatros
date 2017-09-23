@@ -1,6 +1,6 @@
 const BitfinexApi = require('./src/bitfinex')
 const {pairs} = require('./src/const')
-const debug = require('debug')('main')
+const debug = require('debug')('main-test')
 
 async function start () {
   await testSubscribeImmediately()
@@ -13,7 +13,7 @@ async function start () {
 
 function resolveIfMsgOk (resolve, bitFinexAdapter) {
   return (pair, data) => {
-    if (pair === pairs.BTCUSD && data.length === 3) {
+    if (pair === pairs.USDTBTC && data.length === 3) {
       debug('received book subscription data, test passed')
       bitFinexAdapter.destroy()
       resolve()
@@ -23,7 +23,7 @@ function resolveIfMsgOk (resolve, bitFinexAdapter) {
 async function testSubscribeImmediately () {
   return new Promise(resolve => {
     const btf = new BitfinexApi()
-    btf.subscribeBook(pairs.BTCUSD)
+    btf.subscribeBook(pairs.USDTBTC)
     btf.once('bookUpdate', resolveIfMsgOk(resolve, btf))
   })
 }
@@ -32,7 +32,7 @@ async function testConnectCompleteThenSubscribeEventually () {
   return new Promise(resolve => {
     const btf = new BitfinexApi()
     btf.once('bookUpdate', resolveIfMsgOk(resolve, btf))
-    btf.on('sockedOpened', () => setTimeout(() => btf.subscribeBook(pairs.BTCUSD), 1500))
+    btf.on('sockedOpened', () => setTimeout(() => btf.subscribeBook(pairs.USDTBTC), 1500))
   })
 }
 
@@ -46,7 +46,7 @@ async function testSubscribeDuringReconnect () {
         openedOnce = true
         setImmediate(() => {
           btf.forceCloseWs()
-          btf.subscribeBook(pairs.BTCUSD)
+          btf.subscribeBook(pairs.USDTBTC)
         })
       }
     })

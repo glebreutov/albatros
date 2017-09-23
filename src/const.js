@@ -1,6 +1,6 @@
 module.exports = {
+  // normalized pairs: BASE-QUOTE
   pairs: {
-    BTCUSD: 'BTC-USD',
-    ETHUSD: 'ETC-USD'
+    USDTBTC: 'USDT-BTC',
   }
 }

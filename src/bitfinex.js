@@ -1,29 +1,14 @@
 /* eslint-env node */
 const WebSocket = require('ws')
 const EventEmitter = require('events')
-const {bind} = require('./tools')
+const {bind, createConverter} = require('./tools')
 const _ = require('lodash')
 const {pairs} = require('./const')
 const debug = require('debug')('BitfinexApi')
 
-
-const bitfinexPairs = {
-  [pairs.BTCUSD]: 'BTCUSD'
-}
-const convertToBitfinexPair = uniform => {
-  const specificPair = bitfinexPairs[uniform]
-  if (!specificPair) {
-    throw new Error(`Pair ${uniform} not supported`)
-  }
-  return specificPair
-}
-const convertToUniformPair = specificPair => {
-  const uniform = _.findKey(bitfinexPairs, v => v === specificPair)
-  if (!specificPair) {
-    throw new Error(`Could not convert ${specificPair} to uniform pair`)
-  }
-  return uniform
-}
+const converter = createConverter({
+  [pairs.USDTBTC]: 'BTCUSD'
+})
 
 class BitfinexApi extends EventEmitter {
   constructor (...args) {
@@ -51,7 +36,7 @@ class BitfinexApi extends EventEmitter {
     try {
       msg = JSON.parse(msg)
       // book subscription answers:
-      // msg {"event":"subscribed","channel":"book","chanId":83624,"prec":"P0","freq":"F0","len":"25","pair":"BTCUSD"}
+      // msg {"event":"subscribed","channel":"book","chanId":83624,"prec":"P0","freq":"F0","len":"25","pair":"USDTBTC"}
       // msg [83624,[[3774.3,3,24.71378776],[3774.2,1,0.7604], ...]
       // msg [83624,"hb"]
       // msg [80198,3783,1,0.5]
@@ -96,7 +81,7 @@ class BitfinexApi extends EventEmitter {
         debug('ERROR: subscription data for channel "book" should an array of exactly 3 items')
         return
       }
-      this.emit('bookUpdate', convertToUniformPair(subscription.pair), data)
+      this.emit('bookUpdate', converter.toUniformPair(subscription.pair), data)
       return
     }
     debug(`WARNING: i don't know how to handle ${subscription.channel} data`)
@@ -118,7 +103,7 @@ class BitfinexApi extends EventEmitter {
   async subscribeBook (pair) {
     const newSub = {
       channel: 'book',
-      pair: convertToBitfinexPair(pair)
+      pair: converter.fromUniformPair(pair)
     }
     // exists by channel / pair
     if (_.some(this.subscriptions, newSub)) {
