@@ -6,7 +6,6 @@ const _ = require('lodash')
 const {pairs} = require('./const')
 const debug = require('debug')('BittrexApi')
 
-
 const converter = createConverter({
   [pairs.USDTBTC]: 'USDT-BTC'
 })
@@ -16,36 +15,40 @@ class BittrexApi extends EventEmitter {
     super(...args)
     debug('Creating BittrexApi')
     bind([
-      'beginPolling'
+      '_beginPolling'
     ], this)
     this.subscriptions = []
     this.poller = 0
     this.destroying = false
   }
 
-  async beginPolling () {
+  async _beginPolling () {
     const subscriptionToPoll = this.subscriptions.shift()
     this.subscriptions.push(subscriptionToPoll)
     try {
-      const resp = await fetch(`https://bittrex.com/api/v1.1/public/getorderbook?market=${subscriptionToPoll.pair}&type=both`)
-      subscriptionToPoll.lastUpdated = +new Date()
-      const msg = await resp.json()
-      if (this.destroying) {
+      if (subscriptionToPoll.type === 'getorderbook') {
+        const resp = await fetch(`https://bittrex.com/api/v1.1/public/getorderbook?market=${subscriptionToPoll.pair}&type=both`)
+        subscriptionToPoll.lastUpdated = +new Date()
+        const msg = await resp.json()
+        if (this.destroying) {
+          return
+        }
+        if (msg.success) {
+          msg.result.buy.forEach(({Quantity, Rate}) =>
+            this.emit('bookUpdate', converter.toUniformPair(subscriptionToPoll.pair), [Rate, 'buy', Quantity]))
+          msg.result.sell.forEach(({Quantity, Rate}) =>
+            this.emit('bookUpdate', converter.toUniformPair(subscriptionToPoll.pair), [Rate, 'sell', Quantity]))
+        } else {
+          debug(`ERROR: ${JSON.stringify(msg)}`)
+        }
         return
       }
-      if (msg.success) {
-        msg.result.buy.forEach(({Quantity, Rate}) =>
-          this.emit('bookUpdate', converter.toUniformPair(subscriptionToPoll.pair), [Rate, 'buy', Quantity]))
-        msg.result.sell.forEach(({Quantity, Rate}) =>
-          this.emit('bookUpdate', converter.toUniformPair(subscriptionToPoll.pair), [Rate, 'sell', Quantity]))
-      } else {
-        debug(`ERROR: ${JSON.stringify(msg)}`)
-      }
+      debug(`WARNING: i don't know how to handle ${subscriptionToPoll.type} data`)
     } catch (e) {
       debug(`Polling ${JSON.stringify(subscriptionToPoll)}failed: ${e}`)
     } finally {
       if (!this.destroying) {
-        this.poller = setTimeout(this.beginPolling, 1000)
+        this.poller = setTimeout(this._beginPolling, 1000)
       }
     }
   }
@@ -68,7 +71,7 @@ class BittrexApi extends EventEmitter {
 
     this.subscriptions.push(newSub)
     if (this.subscriptions.length === 1) {
-      this.beginPolling()
+      this._beginPolling()
     }
   }
 }
