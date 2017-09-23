@@ -2,87 +2,151 @@
 const WebSocket = require('ws')
 const EventEmitter = require('events')
 const {bind} = require('./tools')
+const _ = require('lodash')
+const {pairs} = require('./const')
+const debug = require('debug')('BitfinexApi')
 
-// todo abstract save/restore subscriptions
-class BitfinexAdapter extends EventEmitter {
+
+const bitfinexPairs = {
+  [pairs.BTCUSD]: 'BTCUSD'
+}
+const convertToBitfinexPair = uniform => {
+  const specificPair = bitfinexPairs[uniform]
+  if (!specificPair) {
+    throw new Error(`Pair ${uniform} not supported`)
+  }
+  return specificPair
+}
+const convertToUniformPair = specificPair => {
+  const uniform = _.findKey(bitfinexPairs, v => v === specificPair)
+  if (!specificPair) {
+    throw new Error(`Could not convert ${specificPair} to uniform pair`)
+  }
+  return uniform
+}
+
+class BitfinexApi extends EventEmitter {
   constructor (...args) {
     super(...args)
-    console.log('Creating BitfinexAdapter')
+    debug('Creating BitfinexApi')
     this.ws = null
     bind([
       'createSocket',
-      'sendSubscribeBook',
+      '_subscribe',
       'onWSError',
       'onWSMessage',
       'onWSOpen',
       'onWSClose'
     ], this)
-    this.bookSubscriptions = []
-    this.isReconnecting = false
+    this.subscriptions = []
     this.reconnectTimeout = null
     this.createSocket(true).then()
   }
   onWSError (err) {
-    console.log('ws error', err)
-    this.emit('error', err)
+    debug('ws error', err)
   }
   onWSMessage (msg) {
-    console.log('msg', msg)
+    debug('msg', msg)
+    this.emit('socketMessage', msg)
     try {
       msg = JSON.parse(msg)
-      this.emit('wsMessage', msg)
-    } catch (e) {}
+      // book subscription answers:
+      // msg {"event":"subscribed","channel":"book","chanId":83624,"prec":"P0","freq":"F0","len":"25","pair":"BTCUSD"}
+      // msg [83624,[[3774.3,3,24.71378776],[3774.2,1,0.7604], ...]
+      // msg [83624,"hb"]
+      // msg [80198,3783,1,0.5]
+      if (_.isObject(msg) && msg.event === 'subscribed') {
+        const subscription = _.find(this.subscriptions, _.pick(msg, ['channel', 'pair']))
+        if (!subscription) {
+          debug(`ERROR: received subscription confirmation for channel ${msg.channel} / pair ${msg.pair} but no according subscription found`)
+          return
+        }
+        debug(`subscription to ${subscription.channel} confirmed`)
+        _.assign(subscription, {
+          lastUpdated: +new Date(),
+          chanId: msg.chanId
+        })
+        return
+      }
+
+      if (_.isArray(msg)) {
+        const subscription = _.find(this.subscriptions, {chanId: msg[0]})
+        if (!subscription) {
+          debug(`ERROR: received data confirmation for chanId ${msg[0]} but no according subscription found`)
+          return
+        }
+        subscription.lastUpdated = +new Date()
+        if (_.isString(msg[1])) {
+          return
+        }
+        if (_.isArray(msg[1])) {
+          msg[1].forEach(item => this.onSubscriptionData(subscription, item))
+        } else {
+          msg.shift()
+          this.onSubscriptionData(subscription, msg)
+        }
+      }
+    } catch (e) {
+      debug('ERROR: Could not process data from server:', e)
+    }
   }
-  onWSOpen () {
-    this.isReconnecting = null
-    console.log(`refreshing ${this.bookSubscriptions.length} subscriptions`)
-    this.bookSubscriptions.forEach(this.sendSubscribeBook)
-    // todo debug
-    this.emit('wsOpen')
-  }
-  onWSClose (...args) {
-    console.log('socket closed', JSON.stringify(...args))
-    this.ws = null
-    console.log('reconnecting in 1s...')
-    this.isReconnecting = true
-    this.reconnectTimeout = setTimeout(this.createSocket, 1000)
-  }
-  onMessage (msg) {
-    console.log(msg)
-  }
-  async subscribeBook (pair) {
-    if (this.bookSubscriptions.includes(pair)) {
-      console.log('already subscribed to', pair)
+  onSubscriptionData (subscription, data) {
+    if (subscription.channel === 'book') {
+      if (!_.isArray(data) || data.length !== 3) {
+        debug('ERROR: subscription data for channel "book" should an array of exactly 3 items')
+        return
+      }
+      this.emit('bookUpdate', convertToUniformPair(subscription.pair), data)
       return
     }
-    console.log('subscribing to', pair)
-    if (pair !== 'BTC-USD') {
-      throw new Error(`Pair ${pair} not supported`)
+    debug(`WARNING: i don't know how to handle ${subscription.channel} data`)
+  }
+  onWSOpen () {
+    this.emit('sockedOpened')
+    debug(`refreshing ${this.subscriptions.length} subscriptions`)
+    this.subscriptions.forEach(this._subscribe)
+  }
+  onWSClose (...args) {
+    this.ws = null
+    this.emit('sockedClosed')
+    debug('socket closed:', JSON.stringify(...args))
+    const reconnectAfter = 1
+    debug(`reconnecting in ${reconnectAfter}s...`)
+    this.reconnectTimeout = setTimeout(this.createSocket, reconnectAfter * 1000)
+  }
+
+  async subscribeBook (pair) {
+    const newSub = {
+      channel: 'book',
+      pair: convertToBitfinexPair(pair)
     }
-    this.bookSubscriptions.push(pair)
-    if (!this.isReconnecting && this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.sendSubscribeBook(pair)
+    // exists by channel / pair
+    if (_.some(this.subscriptions, newSub)) {
+      debug(`already subscribed to ${pair}`)
+      return
+    }
+    debug(`adding book subscription for ${pair}`)
+    this.subscriptions.push(newSub)
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this._subscribe(newSub)
     } else {
-      console.log('immediate subscription skipped as websocket is reconnecting')
+      debug('immediate subscription skipped as websocket is reconnecting')
     }
   }
-  sendSubscribeBook (pair) {
-    const pairs = {
-      'BTC-USD': 'BTCUSD'
+  _subscribe (subscription) {
+    debug(`sending subscription message for ${JSON.stringify(subscription)}`)
+    try {
+      this.ws.send(JSON.stringify({
+        ..._.pick(subscription, ['channel', 'pair']),
+        event: 'subscribe'
+      }))
+    } catch (e) {
+      debug('ERROR: subscription message failed:', e)
     }
-    if (!pairs[pair]) {
-      throw new Error(`Pair ${pair} not supported`)
-    }
-    console.log(`sending ${pairs[pair]} subscription message`)
-    this.ws.send(JSON.stringify({
-      'event': 'subscribe',
-      'channel': 'book',
-      'pair': pairs[pair]
-    }))
   }
 
   destroy () {
-    console.log('destroying')
+    debug('destroying')
     if (this.ws) {
       this.ws
         .removeAllListeners('error')
@@ -92,22 +156,22 @@ class BitfinexAdapter extends EventEmitter {
         .close()
     }
     clearInterval(this.reconnectTimeout)
+    debug('destroyed')
   }
-  // todo debug
+  // for debug purposes
   forceCloseWs () {
-    console.log('force shutting down ws')
+    debug('force shutting down ws')
     this.ws.close()
   }
 
   async createSocket (firstTime) {
-    console.log((firstTime ? '' : 're') + 'connecting')
-    this.isReconnecting = true
+    debug((firstTime ? '' : 're') + 'connecting')
     return new Promise(resolve => {
       const ws = new WebSocket('wss://api.bitfinex.com/ws')
         .on('error', this.onWSError)
         .on('message', this.onWSMessage)
         .on('open', () => {
-          console.log('socket opened')
+          debug('socket opened')
           this.ws = ws
           resolve(ws)
           this.onWSOpen()
@@ -117,4 +181,4 @@ class BitfinexAdapter extends EventEmitter {
   }
 }
 
-module.exports = BitfinexAdapter
+module.exports = BitfinexApi

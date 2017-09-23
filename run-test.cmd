@@ -1,0 +1,2 @@
+SET DEBUG=*
+npm test
