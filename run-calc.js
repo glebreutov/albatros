@@ -5,19 +5,54 @@ const _ = require('lodash')
 const Book = require('./src/Book')
 const calculate = require('./calc/arb_calc').calculate
 const fees = require('./calc/fees')
+// const exec = require('./src/executionApi')
 
 function adaptBook (book, side) {
   return book.getLevels(side).map(x => ({price: parseFloat(x[Book.INDEX_PRICE]), size: parseFloat(x[Book.INDEX_SIZE])}))
 }
 
-function calc (book1, book2, fees1, fees2) {
+function profitTreshold (arbRes) {
+  return arbRes.profit > 0
+}
+
+function executionSimulator (arbRes, buyExch, sellExch) {
+  // buy bittr
+  console.log(buyExch, 'limit buy price:', arbRes.arbBuy, 'size:', arbRes.volume)
+  // problems: order rejected, order not fully executed
+  // open bitf
+  console.log(sellExch, 'open long positon:', arbRes.volume)
+  // problems: can't open position
+  // sell bitf
+  console.log(sellExch, 'limit sell price:', arbRes.arbSell, 'size:', arbRes.volume)
+  // problems: order rejected, order not fully executed
+  // transfer funds from bitr to bitf
+  console.log('transfer from', buyExch, 'to', sellExch)
+  // problems: transfer rejected, transfer stucked
+  // close bitf
+  console.log(sellExch, 'close long positon:', arbRes.volume)
+  // problems: can't close position
+  // transfer funds from bitf to bitr
+  console.log('transfer from', sellExch, 'to', buyExch)
+  // problems: transfer rejected, transfer stucked
+
+  // loop
+  console.log('polling balance', buyExch)
+  console.log('polling balance', sellExch)
+}
+
+function calc (book1, book2, exch1Name, exch2Name) {
   const myFunds = 1
   const buyDepth = adaptBook(book1, sides.ASK)
   const sellDepth = adaptBook(book2, sides.BID)
+  const fees1 = fees.getFees(exch1Name)
+  const fees2 = fees.getFees(exch2Name)
 
   if (buyDepth.length > 5 && sellDepth.length > 5) {
     const arbRes = calculate(buyDepth, sellDepth, fees1.taker, fees2.taker, fees1.withdrawal.BTC, fees2.withdrawal.USDT, myFunds)
-    console.log(arbRes)
+    if (profitTreshold(arbRes)) {
+      executionSimulator(arbRes, exch1Name, exch2Name)
+    }
+    // console.log(arbRes)
   }
 }
 
@@ -46,13 +81,12 @@ async function main () {
   }
 
   bitfinex.on('bookUpdate',
-    () => calc(bitfinexBook, bittrexBook, fees.getFees('BITF'), fees.getFees('BTRX'))
+    () => calc(bitfinexBook, bittrexBook, 'BITF', 'BTRX')
   )
 
   bittrex.on('bookUpdate',
-    () => calc(bittrexBook, bitfinexBook, fees.getFees('BTRX'), fees.getFees('BITF'))
+    () => calc(bittrexBook, bitfinexBook, 'BTRX', 'BITF')
   )
-
 }
 
 main().then()
