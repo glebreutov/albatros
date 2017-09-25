@@ -38,6 +38,16 @@ class Book {
     )
   }
 
+  setLevels (side, levels) {
+    Book.assertSide(side)
+    assert(Array.isArray(levels), 'ArgumentException: levels')
+
+    this.levels = this.levels.updateIn([side], () =>
+      Map(mapDeep(levels, (l) => (l instanceof Big) ? l : Big(l)))
+      .filterNot(v => v.eq(0))
+      .sortBy((v, k) => k, Book.priceComparators[side]))
+  }
+
   _incrementLevel (side, price, size) {
     const levelSize = this.levels.getIn([side, price])
     if (!levelSize && size.lte(0)) {

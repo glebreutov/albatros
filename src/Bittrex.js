@@ -34,10 +34,7 @@ class BittrexApi extends EventEmitter {
           return
         }
         if (msg.success) {
-          msg.result.buy.forEach(({Quantity, Rate}) =>
-            this.emit('bookUpdate', converter.normalize(subscriptionToPoll.pair), [Rate, 'buy', Quantity]))
-          msg.result.sell.forEach(({Quantity, Rate}) =>
-            this.emit('bookUpdate', converter.normalize(subscriptionToPoll.pair), [Rate, 'sell', Quantity]))
+          this.emit('bookUpdate', converter.normalize(subscriptionToPoll.pair), msg.result)
         } else {
           debug(`ERROR: ${JSON.stringify(msg)}`)
         }
