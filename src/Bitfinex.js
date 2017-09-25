@@ -6,7 +6,7 @@ const _ = require('lodash')
 const {pairs} = require('./const')
 const debug = require('debug')('BitfinexApi')
 
-const converter = createConverter({
+const pairConverter = createConverter({
   [pairs.USDTBTC]: 'BTCUSD'
 })
 
@@ -65,10 +65,10 @@ class BitfinexApi extends EventEmitter {
           return
         }
         if (_.isArray(msg[1])) {
-          msg[1].forEach(item => this.onSubscriptionData(subscription, item))
+          this.onSubscriptionData(subscription, msg[1])
         } else {
           msg.shift()
-          this.onSubscriptionData(subscription, msg)
+          this.onSubscriptionData(subscription, [msg])
         }
       }
     } catch (e) {
@@ -77,11 +77,11 @@ class BitfinexApi extends EventEmitter {
   }
   onSubscriptionData (subscription, data) {
     if (subscription.channel === 'book') {
-      if (!_.isArray(data) || data.length !== 3) {
-        debug('ERROR: subscription data for channel "book" should an array of exactly 3 items')
+      if (!_.isArray(data) || _.some(data, d => !_.isArray(d) || d.length !== 3)) {
+        debug('ERROR: subscription data error')
         return
       }
-      this.emit('bookUpdate', converter.toUniformPair(subscription.pair), data)
+      this.emit('bookUpdate', pairConverter.normalize(subscription.pair), data)
       return
     }
     debug(`WARNING: i don't know how to handle ${subscription.channel} data`)
@@ -103,7 +103,7 @@ class BitfinexApi extends EventEmitter {
   async subscribeBook (pair) {
     const newSub = {
       channel: 'book',
-      pair: converter.fromUniformPair(pair)
+      pair: pairConverter.denormalize(pair)
     }
     // exists by channel / pair
     if (_.some(this.subscriptions, newSub)) {

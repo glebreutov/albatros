@@ -35,9 +35,9 @@ class BittrexApi extends EventEmitter {
         }
         if (msg.success) {
           msg.result.buy.forEach(({Quantity, Rate}) =>
-            this.emit('bookUpdate', converter.toUniformPair(subscriptionToPoll.pair), [Rate, 'buy', Quantity]))
+            this.emit('bookUpdate', converter.normalize(subscriptionToPoll.pair), [Rate, 'buy', Quantity]))
           msg.result.sell.forEach(({Quantity, Rate}) =>
-            this.emit('bookUpdate', converter.toUniformPair(subscriptionToPoll.pair), [Rate, 'sell', Quantity]))
+            this.emit('bookUpdate', converter.normalize(subscriptionToPoll.pair), [Rate, 'sell', Quantity]))
         } else {
           debug(`ERROR: ${JSON.stringify(msg)}`)
         }
@@ -61,7 +61,7 @@ class BittrexApi extends EventEmitter {
   async subscribeBook (pair) {
     const newSub = {
       type: 'getorderbook',
-      pair: converter.fromUniformPair(pair)
+      pair: converter.denormalize(pair)
     }
     // exists by type / pair
     if (_.some(this.subscriptions, newSub)) {

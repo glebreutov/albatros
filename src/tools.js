@@ -13,25 +13,35 @@ exports.bind = function bind (names, context) {
 
 /**
  *
- * @param dict [UniformPair]: SpecificPair
- * @return {{fromUniformPair: (function(*)), toUniformPair: (function(*=))}}
+ * @param dict [normalizedValue]: specificValue
+ * @return {{denormalize: (function(*)), normalize: (function(*=))}}
  */
 exports.createConverter = function (dict) {
   return {
-    fromUniformPair: uniform => {
-      const specificPair = dict[uniform]
-      if (!specificPair) {
-        throw new Error(`Pair ${uniform} not supported`)
+    denormalize: normalizedValue => {
+      const specificValue = dict[normalizedValue]
+      if (!specificValue) {
+        throw new Error(`Value ${normalizedValue} can't be denormalized`)
       }
-      return specificPair
+      return specificValue
     },
-    toUniformPair: specificPair => {
-      const uniform = _.findKey(dict, v => v === specificPair)
-      if (!specificPair) {
-        throw new Error(`Could not convert ${specificPair} to uniform pair`)
+    normalize: specificValue => {
+      const normalizedValue = _.findKey(dict, v => v === specificValue)
+      if (!specificValue) {
+        throw new Error(`Value ${specificValue} can't be normalized`)
       }
-      return uniform
+      return normalizedValue
     }
 
+  }
+}
+
+exports.mapDeep = function mapDeep (items, cb) {
+  return Array.isArray(items) ? items.map(function (item) { return mapDeep(item, cb) }) : cb(items)
+}
+
+exports.assert = function assert (condition, message) {
+  if (!condition) {
+    throw new Error(message)
   }
 }

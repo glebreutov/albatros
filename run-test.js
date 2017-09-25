@@ -1,4 +1,4 @@
-const BitfinexApi = require('./src/bitfinex')
+const BitfinexApi = require('./src/Bitfinex')
 const {pairs} = require('./src/const')
 const debug = require('debug')('main-test')
 
