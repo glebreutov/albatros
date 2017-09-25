@@ -22,6 +22,10 @@ class BittrexApi extends EventEmitter {
     this.subscriptions = []
   }
 
+  getLastUpdated () {
+    return this.subscriptions.map(s => ({pair: converter.normalize(s.pair), lastUpdated: s.lastUpdated}))
+  }
+
   onSubscriptionMessage (data) {
     if (data.M === 'updateExchangeState') {
       data.A.forEach(dataFor => {
@@ -47,7 +51,6 @@ class BittrexApi extends EventEmitter {
   // todo: reconnects?
   async subscribe (pairs) {
     for (let i = 0; i < pairs.length; i++) {
-
       const pair = converter.denormalize(pairs[i])
       const newSub = {
         channel: 'book',

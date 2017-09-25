@@ -1,48 +1,33 @@
 const BitfinexApi = require('./src/Bitfinex')
 const BittrexApi = require('./src/Bittrex')
 const {pairs, sides} = require('./src/const')
+const _ = require('lodash')
 const Book = require('./src/Book')
 const debug = require('debug')('main')
 
 async function start () {
-  // const bitfinex = new BitfinexApi()
-  // bitfinex.subscribeBook(pairs.USDTBTC)
-  // const book1 = new Book()
-  // bitfinex.on('bookUpdate', (pair, data) => {
-  //
-  //   book1.updateLevels(sides.ASK, data.filter(d => d[2] < 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
-  //   book1.updateLevels(sides.ASK, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
-  //   book1.updateLevels(sides.BID, data.filter(d => d[2] > 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
-  //   book1.updateLevels(sides.BID, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
-  //
-  //   console.log('\033c')
-  //
-  //   console.log('bid')
-  //   book1.getLevels(sides.BID).slice(0, 10).forEach(l => console.log(`${l[Book.INDEX_PRICE].toFixed(4)}:\t${l[Book.INDEX_SIZE]}`))
-  //   console.log('')
-  //
-  //   console.log('ask')
-  //   book1.getLevels(sides.ASK).slice(0, 10).forEach(l => console.log(`${l[Book.INDEX_PRICE].toFixed(4)}:\t${l[Book.INDEX_SIZE]}`))
-  //
-  // })
-
-
-  const bitfinex = new BittrexApi()
-  bitfinex.subscribe([pairs.USDTBTC])
-  const book2 = new Book()
+  const bitfinex = new BitfinexApi()
+  bitfinex.subscribeBook(pairs.USDTBTC)
+  const bitfinexBook = new Book()
   bitfinex.on('bookUpdate', (pair, data) => {
-    book2.updateLevels(sides.ASK, data.sell.map(d => [d.Rate, d.Quantity]))
-    book2.updateLevels(sides.BID, data.buy.map(d => [d.Rate, d.Quantity]))
-
-      console.log('\033c')
-
-      console.log('bid')
-      book2.getLevels(sides.BID).slice(0, 10).forEach(l => console.log(`${l[Book.INDEX_PRICE].toFixed(4)}:\t${l[Book.INDEX_SIZE]}`))
-      console.log('')
-
-      console.log('ask')
-      book2.getLevels(sides.ASK).slice(0, 10).forEach(l => console.log(`${l[Book.INDEX_PRICE].toFixed(4)}:\t${l[Book.INDEX_SIZE]}`))
-
+    bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[2] < 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
+    bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
+    bitfinexBook.updateLevels(sides.BID, data.filter(d => d[2] > 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
+    bitfinexBook.updateLevels(sides.BID, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
   })
+
+  const bittrex = new BittrexApi()
+  bittrex.subscribe([pairs.USDTBTC])
+  const bittrexBook = new Book()
+  bittrex.on('bookUpdate', (pair, data) => {
+    bittrexBook.updateLevels(sides.ASK, data.sell.map(d => [d.Rate, d.Quantity]))
+    bittrexBook.updateLevels(sides.BID, data.buy.map(d => [d.Rate, d.Quantity]))
+  })
+
+  setInterval(() => {
+    console.log('\033c')
+    console.log(`bitfinex: ${bitfinexBook.getLevels(sides.BID).length + bitfinexBook.getLevels(sides.ASK).length} levels, ${JSON.stringify(bitfinex.getLastUpdated().map(s => ({...s, ['lastUpdated']: ((+new Date() - s.lastUpdated) / 1000).toFixed(1) + ' s ago'})))}`)
+    console.log(`bittrex: ${bittrexBook.getLevels(sides.BID).length + bittrexBook.getLevels(sides.ASK).length} levels, ${JSON.stringify(bittrex.getLastUpdated().map(s => ({...s, ['lastUpdated']: ((+new Date() - s.lastUpdated) / 1000).toFixed(1) + ' s ago'})))}`)
+  }, 1000)
 }
 start().then()

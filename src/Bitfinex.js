@@ -27,6 +27,9 @@ class BitfinexApi extends EventEmitter {
     this.reconnectTimeout = null
     this.createSocket(true).then()
   }
+  getLastUpdated () {
+    return this.subscriptions.map(s => ({pair: pairConverter.normalize(s.pair), lastUpdated: s.lastUpdated}))
+  }
   onWSError (err) {
     debug('ws error', err)
   }
