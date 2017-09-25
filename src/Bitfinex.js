@@ -57,7 +57,7 @@ class BitfinexApi extends EventEmitter {
       if (_.isArray(msg)) {
         const subscription = _.find(this.subscriptions, {chanId: msg[0]})
         if (!subscription) {
-          debug(`ERROR: received data confirmation for chanId ${msg[0]} but no according subscription found`)
+          debug(`ERROR: received data for chanId ${msg[0]} but no according subscription found`)
           return
         }
         subscription.lastUpdated = +new Date()

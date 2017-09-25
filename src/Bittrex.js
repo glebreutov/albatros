@@ -1,7 +1,7 @@
 /* eslint-env node */
 const EventEmitter = require('events')
+const bittrex = require('node-bittrex-api')
 const {bind, createConverter} = require('./tools')
-const fetch = require('node-fetch')
 const _ = require('lodash')
 const {pairs} = require('./const')
 const debug = require('debug')('BittrexApi')
@@ -10,66 +10,59 @@ const converter = createConverter({
   [pairs.USDTBTC]: 'USDT-BTC'
 })
 
+// https://github.com/dparlevliet/node.bittrex.api#websockets
 class BittrexApi extends EventEmitter {
   constructor (...args) {
     super(...args)
     debug('Creating BittrexApi')
+    bittrex.options({verbose: true})
     bind([
-      '_beginPolling'
+      'onSubscriptionMessage'
     ], this)
     this.subscriptions = []
-    this.poller = 0
-    this.destroying = false
   }
 
-  async _beginPolling () {
-    const subscriptionToPoll = this.subscriptions.shift()
-    this.subscriptions.push(subscriptionToPoll)
-    try {
-      if (subscriptionToPoll.type === 'getorderbook') {
-        const resp = await fetch(`https://bittrex.com/api/v1.1/public/getorderbook?market=${subscriptionToPoll.pair}&type=both`)
-        subscriptionToPoll.lastUpdated = +new Date()
-        const msg = await resp.json()
-        if (this.destroying) {
+  onSubscriptionMessage (data) {
+    if (data.M === 'updateExchangeState') {
+      data.A.forEach(dataFor => {
+        const pair = dataFor.MarketName
+        const subscription = _.find(this.subscriptions, {channel: 'book', pair})
+        if (!subscription) {
+          debug(`ERROR: received data for pair ${pair} but no according subscription found`)
           return
         }
-        if (msg.success) {
-          this.emit('bookUpdate', converter.normalize(subscriptionToPoll.pair), msg.result)
-        } else {
-          debug(`ERROR: ${JSON.stringify(msg)}`)
-        }
-        return
-      }
-      debug(`WARNING: i don't know how to handle ${subscriptionToPoll.type} data`)
-    } catch (e) {
-      debug(`Polling ${JSON.stringify(subscriptionToPoll)}failed: ${e}`)
-    } finally {
-      if (!this.destroying) {
-        this.poller = setTimeout(this._beginPolling, 1000)
-      }
+        subscription.lastUpdated = +new Date()
+        this.emit('bookUpdate', converter.denormalize(pair), {buy: dataFor.Buys, sell: dataFor.Sells})
+      })
     }
   }
 
-  destroy () {
-    this.destroying = true
-    clearInterval(this.poller)
+  async _getOrderBookSnapshot (pair) {
+    return new Promise(resolve => bittrex.getorderbook(
+      { market: pair, type: 'both' },
+      resolve
+    ))
   }
 
-  async subscribeBook (pair) {
-    const newSub = {
-      type: 'getorderbook',
-      pair: converter.denormalize(pair)
-    }
-    // exists by type / pair
-    if (_.some(this.subscriptions, newSub)) {
-      debug(`already subscribed to ${pair}`)
-      return
-    }
+  // todo: reconnects?
+  async subscribe (pairs) {
+    for (let i = 0; i < pairs.length; i++) {
 
-    this.subscriptions.push(newSub)
-    if (this.subscriptions.length === 1) {
-      this._beginPolling()
+      const pair = converter.denormalize(pairs[i])
+      const newSub = {
+        channel: 'book',
+        pair
+      }
+      if (_.some(this.subscriptions, newSub)) {
+        debug(`already subscribed to ${pair}`)
+        continue
+      }
+      this.subscriptions.push(newSub)
+      const data = await this._getOrderBookSnapshot(pair)
+      newSub.lastUpdated = +new Date()
+      this.emit('bookUpdate', pairs[i], data.result)
     }
+    bittrex.websockets.subscribe(pairs.map(converter.denormalize), this.onSubscriptionMessage)
   }
 }
 

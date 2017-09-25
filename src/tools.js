@@ -16,7 +16,7 @@ exports.bind = function bind (names, context) {
  * @param dict [normalizedValue]: specificValue
  * @return {{denormalize: (function(*)), normalize: (function(*=))}}
  */
-exports.createConverter = function (dict) {
+exports.createConverter = function createConverter (dict) {
   return {
     denormalize: normalizedValue => {
       const specificValue = dict[normalizedValue]

@@ -28,11 +28,11 @@ async function start () {
 
 
   const bitfinex = new BittrexApi()
-  bitfinex.subscribeBook(pairs.USDTBTC)
+  bitfinex.subscribe([pairs.USDTBTC])
   const book2 = new Book()
   bitfinex.on('bookUpdate', (pair, data) => {
-    book2.setLevels(sides.ASK, data.sell.map(d => [d.Rate, d.Quantity]))
-    book2.setLevels(sides.BID, data.buy.map(d => [d.Rate, d.Quantity]))
+    book2.updateLevels(sides.ASK, data.sell.map(d => [d.Rate, d.Quantity]))
+    book2.updateLevels(sides.BID, data.buy.map(d => [d.Rate, d.Quantity]))
 
       console.log('\033c')
 
