@@ -28,6 +28,13 @@ async function start () {
     console.log('\033c')
     console.log(`bitfinex: ${bitfinexBook.getLevels(sides.BID).length + bitfinexBook.getLevels(sides.ASK).length} levels, ${JSON.stringify(bitfinex.getLastUpdated().map(s => ({...s, ['lastUpdated']: ((+new Date() - s.lastUpdated) / 1000).toFixed(1) + ' s ago'})))}`)
     console.log(`bittrex: ${bittrexBook.getLevels(sides.BID).length + bittrexBook.getLevels(sides.ASK).length} levels, ${JSON.stringify(bittrex.getLastUpdated().map(s => ({...s, ['lastUpdated']: ((+new Date() - s.lastUpdated) / 1000).toFixed(1) + ' s ago'})))}`)
+    console.log('')
+    console.log('ask')
+    bittrexBook.getLevels(sides.ASK).slice(0, 10).forEach(l => console.log(`${l[Book.INDEX_PRICE].toFixed(4)}: ${l[Book.INDEX_SIZE].toFixed(4)}`))
+    console.log('')
+    console.log('bid')
+    bittrexBook.getLevels(sides.BID).slice(0, 10).forEach(l => console.log(`${l[Book.INDEX_PRICE].toFixed(4)}: ${l[Book.INDEX_SIZE].toFixed(4)}`))
+
   }, 1000)
 }
 start().then()

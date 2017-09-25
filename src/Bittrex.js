@@ -41,13 +41,6 @@ class BittrexApi extends EventEmitter {
     }
   }
 
-  async _getOrderBookSnapshot (pair) {
-    return new Promise(resolve => bittrex.getorderbook(
-      { market: pair, type: 'both' },
-      resolve
-    ))
-  }
-
   // todo: reconnects?
   async subscribe (pairs) {
     for (let i = 0; i < pairs.length; i++) {
@@ -61,9 +54,6 @@ class BittrexApi extends EventEmitter {
         continue
       }
       this.subscriptions.push(newSub)
-      const data = await this._getOrderBookSnapshot(pair)
-      newSub.lastUpdated = +new Date()
-      this.emit('bookUpdate', pairs[i], data.result)
     }
     bittrex.websockets.subscribe(pairs.map(converter.denormalize), this.onSubscriptionMessage)
   }
