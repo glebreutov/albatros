@@ -1,11 +1,25 @@
 const {position, sides} = require('./const')
 
-async function openPosition (exch, assetId, size, sides) {
-  return null
+const drivers = {}
+
+exports.registerDriver = (code, driver) => {
+  drivers[code] = driver
 }
 
-async function newOrder (exch, pair, price, size, sides) {
-  return null
+function getDriver (code) {
+  if (code in drivers) {
+    return drivers[code]
+  } else {
+    return require('./FailDriver')
+  }
+}
+
+async function openPosition (exch, assetId, size, sides) {
+  return getDriver(exch).openPosition(assetId, size, sides)
+}
+
+async function newOrder (exch, pair, price, size, side) {
+  return getDriver(exch).newOrder(pair, price, size, side)
 }
 
 exports.openShortPosition = async (exch, assetId, size) => {
@@ -17,7 +31,7 @@ exports.openLongPosition = async (exch, assetId, size) => {
 }
 
 exports.closePosition = async (pos) => {
-  return null
+  return getDriver(pos.exch).closePosition(pos)
 }
 
 exports.buy = async (exch, pair, price, size) => {
@@ -29,20 +43,20 @@ exports.sell = async (exch, pair, price, size) => {
 }
 
 exports.cancel = async (order) => {
-  return null
+  return getDriver(order.exch).cancel(order)
 }
 
 exports.waitForExec = async (order) => {
-  return null
+  return getDriver(order.exch).waitForExec(order)
 }
 
 const withdraw = async (exch, assetId, wallet) => {
-  return null
+  return getDriver(exch).withdraw(assetId, wallet)
 }
 exports.withdraw = withdraw
 
 async function balance (exch, assetId) {
-  return null
+  return getDriver(exch).balance(assetId)
 }
 
 const depositAwait = async (exch, assetId) => {

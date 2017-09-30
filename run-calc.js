@@ -62,37 +62,7 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   return true
 }
 
-function executionSimulator (arbRes, buyExch, sellExch, positions) {
-  const position1 = positions[buyExch]
-  const position2 = positions[sellExch]
-  // buy bittr
-  console.log(buyExch, 'limit buy price:', arbRes.arbBuy, 'size:', arbRes.volume)
-  position1.buy(arbRes.buyAmt, arbRes.volume)
-  // problems: order rejected, order not fully executed
-  // open bitf
-  console.log(sellExch, 'open short positon:', arbRes.volume)
-  position2.open()
-  // problems: can't open position
-  // sell bitf
-  console.log(sellExch, 'limit sell price:', arbRes.arbSell, 'size:', arbRes.volume)
-  position2.sell(arbRes.sellAmt, arbRes.volume)
-  // problems: order rejected, order not fully executed
-  // transfer funds from bitr to bitf
-  console.log('transfer from', buyExch, 'to', sellExch)
-  // problems: transfer rejected, transfer stucked
-  // close bitf
-  console.log(sellExch, 'close long positon:', arbRes.volume)
-  // problems: can't close position
-  // transfer funds from bitf to bitr
-  console.log('transfer from', sellExch, 'to', buyExch)
-  // problems: transfer rejected, transfer stucked
-
-  // loop
-  console.log('polling balance', buyExch)
-  console.log('polling balance', sellExch)
-}
-
-function calc (book1, book2, exch1Name, exch2Name) {
+async function calc (book1, book2, exch1Name, exch2Name, pair) {
   const myFunds = 1
   const buyDepth = adaptBook(book1, sides.ASK)
   const sellDepth = adaptBook(book2, sides.BID)
@@ -102,15 +72,15 @@ function calc (book1, book2, exch1Name, exch2Name) {
   if (buyDepth.length > 5 && sellDepth.length > 5) {
     const arbRes = calculate(buyDepth, sellDepth, fees1.taker, fees2.taker, fees1.withdrawal.BTC, fees2.withdrawal.USDT, myFunds)
     if (profitTreshold(arbRes)) {
-      executionSimulator(arbRes, exch1Name, exch2Name)
+      await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.volume, exch1Name, exch2Name, pair)
     }
     // console.log(arbRes)
   }
 }
 
-async function main () {
+async function main (pair) {
   const bitfinex = new BitfinexApi()
-  bitfinex.subscribeBook(pairs.USDTBTC)
+  bitfinex.subscribeBook(pair)
   const bitfinexBook = new Book()
   bitfinex.on('bookUpdate', (pair, data) => {
     bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[2] < 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
@@ -120,7 +90,7 @@ async function main () {
   })
 
   const bittrex = new BittrexApi()
-  bittrex.subscribe([pairs.USDTBTC])
+  bittrex.subscribe([pair])
   const bittrexBook = new Book()
   bittrex.on('bookUpdate', (pair, data) => {
     bittrexBook.updateLevels(sides.ASK, data.sell.map(d => [d.Rate, d.Quantity]))
@@ -128,12 +98,12 @@ async function main () {
   })
 
   bitfinex.on('bookUpdate',
-    () => calc(bitfinexBook, bittrexBook, 'BITF', 'BTRX')
+    () => calc(bitfinexBook, bittrexBook, 'BITF', 'BTRX', pair)
   )
 
   bittrex.on('bookUpdate',
-    () => calc(bittrexBook, bitfinexBook, 'BTRX', 'BITF')
+    () => calc(bittrexBook, bitfinexBook, 'BTRX', 'BITF', pair)
   )
 }
 
-main().then()
+main(pairs.USDTBTC).then()
