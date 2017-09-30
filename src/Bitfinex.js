@@ -6,9 +6,10 @@ const _ = require('lodash')
 const {pairs} = require('./const')
 const debug = require('debug')('BitfinexApi')
 
-const pairConverter = createConverter({
-  [pairs.USDTBTC]: 'BTCUSD'
-})
+const pairConverter = createConverter([{
+  normal: pairs.USDTBTC,
+  specific: 'BTCUSD'
+}])
 
 class BitfinexApi extends EventEmitter {
   constructor (...args) {

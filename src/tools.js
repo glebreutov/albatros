@@ -13,26 +13,20 @@ exports.bind = function bind (names, context) {
 
 /**
  *
- * @param dict [normalizedValue]: specificValue
- * @return {{denormalize: (function(*)), normalize: (function(*=))}}
+ * @param {{normal: any, specific: any}}[] arr
+ * @return {denormalize: (function(*)), normalize: (function(*=))}
  */
-exports.createConverter = function createConverter (dict) {
-  return {
-    denormalize: normalizedValue => {
-      const specificValue = dict[normalizedValue]
-      if (!specificValue) {
-        throw new Error(`Value ${normalizedValue} can't be denormalized`)
-      }
-      return specificValue
-    },
-    normalize: specificValue => {
-      const normalizedValue = _.findKey(dict, v => v === specificValue)
-      if (!specificValue) {
-        throw new Error(`Value ${specificValue} can't be normalized`)
-      }
-      return normalizedValue
+exports.createConverter = function createConverter (arr) {
+  const createFinder = (findKey, getKey) => val => {
+    const found = _.find(arr, {[findKey]: val})
+    if (!found) {
+      throw new Error(`Value ${val} can't be ${findKey === 'normal' ? 'specified' : 'normalized'}`)
     }
-
+    return found[getKey]
+  }
+  return {
+    denormalize: createFinder('normal', 'specific'),
+    normalize: createFinder('specific', 'normal')
   }
 }
 

@@ -6,9 +6,10 @@ const _ = require('lodash')
 const {pairs} = require('./const')
 const debug = require('debug')('BittrexApi')
 
-const converter = createConverter({
-  [pairs.USDTBTC]: 'USDT-BTC'
-})
+const converter = createConverter([{
+  normal: pairs.USDTBTC,
+  specific: 'USDT-BTC'
+}])
 
 // https://github.com/dparlevliet/node.bittrex.api#websockets
 class BittrexApi extends EventEmitter {
@@ -36,7 +37,7 @@ class BittrexApi extends EventEmitter {
           return
         }
         subscription.lastUpdated = +new Date()
-        this.emit('bookUpdate', converter.denormalize(pair), {buy: dataFor.Buys, sell: dataFor.Sells})
+        this.emit('bookUpdate', converter.normalize(pair), {buy: dataFor.Buys, sell: dataFor.Sells})
       })
     }
   }
