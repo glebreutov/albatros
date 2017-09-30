@@ -36,19 +36,19 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
 
   await Promise.race([
     Promise.all([exec.waitForExec(sellOrder), exec.waitForExec(buyOrder)]),
-    new Promise((resolve) => setTimeout(resolve, 500, 'one'))
+    new Promise((resolve) => setTimeout(resolve, 1000, 'one'))
   ])
 
   await exec.cancel(buyOrder)
   await exec.cancel(sellOrder)
 
-  const transferStatus = await exec.transferFunds(buyExch, sellExch, pair.base, buyWallet)
+  const transferStatus = await exec.transferFunds(buyExch, sellExch, pair.counter, buyWallet)
   if (!transferStatus.ack) {
     console.error(`can't withdraw funds from ${buyExch} to ${sellExch} details: ${transferStatus}`)
     return false
   }
 
-  const backtransferStatsu = await exec.transferFunds(sellExch, buyExch, pair.counter, sellWallet)
+  const backtransferStatsu = await exec.transferFunds(sellExch, buyExch, pair.base, sellWallet)
   if (!backtransferStatsu.ack) {
     console.error(`can't withdraw funds from ${sellExch} to ${buyExch} details ${backtransferStatsu}`)
     return false

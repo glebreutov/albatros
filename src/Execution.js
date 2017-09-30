@@ -1,10 +1,10 @@
 const {position, sides} = require('./const')
 
-async function openPosition(exch, assetId, size, sides){
+async function openPosition (exch, assetId, size, sides) {
   return null
 }
 
-async function newOrder(exch, pair, price, size, sides){
+async function newOrder (exch, pair, price, size, sides) {
   return null
 }
 
@@ -39,14 +39,22 @@ exports.waitForExec = async (order) => {
 const withdraw = async (exch, assetId, wallet) => {
   return null
 }
-exports.withdraw =  withdraw
+exports.withdraw = withdraw
+
+async function balance (exch, assetId) {
+  return null
+}
 
 const depositAwait = async (exch, assetId) => {
-  return null
+  const was = await balance(exch, assetId)
+  while (was === await balance(exch, assetId)) {
+    await new Promise((resolve) => setTimeout(resolve, 5000, 'one'))
+  }
+  return true
 }
 exports.depositAwait = depositAwait
 
-exports.transferFunds = async (from, to, assetId, toWallet) =>{
+exports.transferFunds = async (from, to, assetId, toWallet) => {
   const withdrawStatus = await withdraw(from, assetId, toWallet)
   if (!withdrawStatus.ack) {
     console.error(`can't withdraw funds ${withdrawStatus}`)

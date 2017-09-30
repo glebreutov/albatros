@@ -1,7 +1,7 @@
 module.exports = {
   // normalized pairs: BASE-QUOTE
   pairs: {
-    USDTBTC: 'USDT-BTC'
+    USDTBTC: {base: 'USDT', counter: 'BTC'}
   },
   sides: {
     ASK: 'ask',
