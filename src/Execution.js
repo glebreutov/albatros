@@ -1,25 +1,19 @@
-const Position = {
-  SHORT: 'SHORT', LONG: 'LONG'
-}
+const {position, sides} = require('./const')
 
-const Side = {
-  BID: 'BID', ASK: 'ASK'
-}
-
-async function openPosition(exch, assetId, size, side){
+async function openPosition(exch, assetId, size, sides){
   return null
 }
 
-async function newOrder(exch, pair, price, size, side){
+async function newOrder(exch, pair, price, size, sides){
   return null
 }
 
 exports.openShortPosition = async (exch, assetId, size) => {
-  return openPosition(exch, assetId, size, Position.SHORT)
+  return openPosition(exch, assetId, size, position.SHORT)
 }
 
 exports.openLongPosition = async (exch, assetId, size) => {
-  return openPosition(exch, assetId, size, Position.LONG)
+  return openPosition(exch, assetId, size, position.LONG)
 }
 
 exports.closePosition = async (pos) => {
@@ -27,11 +21,11 @@ exports.closePosition = async (pos) => {
 }
 
 exports.buy = async (exch, pair, price, size) => {
-  return newOrder(exch, pair, price, size, Side.BID)
+  return newOrder(exch, pair, price, size, sides.BID)
 }
 
 exports.sell = async (exch, pair, price, size) => {
-  return newOrder(exch, pair, price, size, Side.ASK)
+  return newOrder(exch, pair, price, size, sides.ASK)
 }
 
 exports.cancel = async (order) => {

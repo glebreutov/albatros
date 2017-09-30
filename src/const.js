@@ -6,5 +6,8 @@ module.exports = {
   sides: {
     ASK: 'ask',
     BID: 'bid'
+  },
+  position: {
+    SHORT: 'SHORT', LONG: 'LONG'
   }
 }

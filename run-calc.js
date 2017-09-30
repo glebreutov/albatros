@@ -7,7 +7,6 @@ const calculate = require('./calc/arb_calc').calculate
 const fees = require('./calc/fees')
 // const exec = require('./src/executionApi')
 const exec = require('./src/Execution')
-const timeout = require('async-timeout')
 
 function adaptBook (book, side) {
   return book.getLevels(side).map(x => ({price: parseFloat(x[Book.INDEX_PRICE]), size: parseFloat(x[Book.INDEX_SIZE])}))
