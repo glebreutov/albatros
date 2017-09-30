@@ -5,11 +5,20 @@ const {bind, createConverter} = require('./tools')
 const _ = require('lodash')
 const {pairs} = require('./const')
 const debug = require('debug')('BitfinexApi')
+const fetch = require('node-fetch')
+const crypto = require('crypto')
+// todo migrate to v2
+const wsEndpoint = 'wss://api.bitfinex.com/ws/'
+// v2 here :)
+const restEndpoint = 'https://api.bitfinex.com/v2/'
 
 const pairConverter = createConverter([{
   normal: pairs.USDTBTC,
   specific: 'BTCUSD'
 }])
+
+const apiKey = 'pPexZH3yLvmith0Xrw8284gju2qZrLHBb1Ee1skjuQZ'
+const apiSecret = 'zLUPDPfCoYcSbaqo6HmkZahSGihy5ajdYmPg3ar81Ab'
 
 class BitfinexApi extends EventEmitter {
   constructor (...args) {
@@ -134,6 +143,36 @@ class BitfinexApi extends EventEmitter {
     }
   }
 
+  async _wallets () {
+    const body = JSON.stringify({})
+    const headers = this._authHeaders('v2/auth/r/wallets', body)
+    const t = await fetch('https://api.bitfinex.com/v2/auth/r/wallets', {
+      method: 'POST',
+      body,
+      headers
+    })
+    const js = await t.json()
+    console.log(js)
+  }
+
+  // const apiPath = 'v2/auth/r/alerts'
+  _authHeaders (apiPath, bodyStr) {
+    const nonce = Date.now().toString()
+    let signature = `/api/${apiPath}${nonce}${bodyStr}`
+
+    signature = crypto
+      .createHmac('sha384', apiSecret)
+      .update(signature)
+      .digest('hex')
+
+    return {
+      'content-type': 'application/json',
+      'bfx-nonce': nonce,
+      'bfx-apikey': apiKey,
+      'bfx-signature': signature
+    }
+  }
+
   destroy () {
     debug('destroying')
     if (this.ws) {
@@ -156,7 +195,7 @@ class BitfinexApi extends EventEmitter {
   async createSocket (firstTime) {
     debug((firstTime ? '' : 're') + 'connecting')
     return new Promise(resolve => {
-      const ws = new WebSocket('wss://api.bitfinex.com/ws')
+      const ws = new WebSocket(wsEndpoint)
         .on('error', this.onWSError)
         .on('message', this.onWSMessage)
         .on('open', () => {
@@ -167,6 +206,11 @@ class BitfinexApi extends EventEmitter {
         })
         .on('close', this.onWSClose)
     })
+  }
+
+  async placeOrder () {
+    const order = {}
+
   }
 }
 
