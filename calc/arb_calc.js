@@ -42,6 +42,8 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee, buyWithdrawal, sellWit
   const perc = val(buyDepth[0].price, sellDepth[0].price)
   return {
     profit: sellAmt * (1 - sellFee) - buyAmt * (1 + buyFee) - buyWithdrawal * buyPrice - sellWithdrawal,
+    sellAmt: sellAmt * (1 - sellFee),
+    buyAmt: buyAmt * (1 + buyFee),
     volume: dealVolume,
     perc: perc,
     spread: sellPrice - buyPrice,

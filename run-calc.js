@@ -6,6 +6,8 @@ const Book = require('./src/Book')
 const calculate = require('./calc/arb_calc').calculate
 const fees = require('./calc/fees')
 // const exec = require('./src/executionApi')
+const exec = require('./src/Execution')
+const timeout = require('async-timeout')
 
 function adaptBook (book, side) {
   return book.getLevels(side).map(x => ({price: parseFloat(x[Book.INDEX_PRICE]), size: parseFloat(x[Book.INDEX_SIZE])}))
@@ -15,15 +17,66 @@ function profitTreshold (arbRes) {
   return arbRes.profit > 0
 }
 
-function executionSimulator (arbRes, buyExch, sellExch) {
+async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sellWallet, buyWallet) {
+  const pos = await exec.openShortPosition(buyExch, pair, size)
+  if (!pos.ack) {
+    console.error(`can't open position ${pos}`)
+    return false
+  }
+  const buyOrder = await exec.buy(buyExch, pair, buyPrice, size)
+  if (!buyOrder.ack) {
+    console.error(`can't buy ${buyOrder}`)
+    return false
+  }
+
+  const sellOrder = await exec.sell(sellExch, sellPrice, size)
+  if (!sellOrder.ack) {
+    console.error(`can't sell ${sellOrder}`)
+    return false
+  }
+
+  await Promise.race([
+    Promise.all([exec.waitForExec(sellOrder), exec.waitForExec(buyOrder)]),
+    new Promise((resolve) => setTimeout(resolve, 500, 'one'))
+  ])
+
+  await exec.cancel(buyOrder)
+  await exec.cancel(sellOrder)
+
+  const transferStatus = await exec.transferFunds(buyExch, sellExch, pair.base, buyWallet)
+  if (!transferStatus.ack) {
+    console.error(`can't withdraw funds from ${buyExch} to ${sellExch} details: ${transferStatus}`)
+    return false
+  }
+
+  const backtransferStatsu = await exec.transferFunds(sellExch, buyExch, pair.counter, sellWallet)
+  if (!backtransferStatsu.ack) {
+    console.error(`can't withdraw funds from ${sellExch} to ${buyExch} details ${backtransferStatsu}`)
+    return false
+  }
+
+  const posClosed = await exec.closePosition(pos)
+  if (!posClosed.ack) {
+    console.error(`unable to close position ${posClosed}`)
+    return false
+  }
+  return true
+}
+
+function executionSimulator (arbRes, buyExch, sellExch, positions) {
+  const position1 = positions[buyExch]
+  const position2 = positions[sellExch]
   // buy bittr
   console.log(buyExch, 'limit buy price:', arbRes.arbBuy, 'size:', arbRes.volume)
+  position1.buy(arbRes.buyAmt, arbRes.volume)
   // problems: order rejected, order not fully executed
   // open bitf
-  console.log(sellExch, 'open long positon:', arbRes.volume)
+  console.log(sellExch, 'open short positon:', arbRes.volume)
+  position2.open()
   // problems: can't open position
   // sell bitf
   console.log(sellExch, 'limit sell price:', arbRes.arbSell, 'size:', arbRes.volume)
+  position2.sell(arbRes.sellAmt, arbRes.volume)
   // problems: order rejected, order not fully executed
   // transfer funds from bitr to bitf
   console.log('transfer from', buyExch, 'to', sellExch)
@@ -74,11 +127,6 @@ async function main () {
     bittrexBook.updateLevels(sides.ASK, data.sell.map(d => [d.Rate, d.Quantity]))
     bittrexBook.updateLevels(sides.BID, data.buy.map(d => [d.Rate, d.Quantity]))
   })
-
-  function mapPrice (book, side) {
-    let strPrice = book.getLevels(side)[0][Book.INDEX_PRICE].toString()
-    return parseFloat(strPrice)
-  }
 
   bitfinex.on('bookUpdate',
     () => calc(bitfinexBook, bittrexBook, 'BITF', 'BTRX')
