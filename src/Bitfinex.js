@@ -7,6 +7,8 @@ const {pairs} = require('./const')
 const debug = require('debug')('BitfinexApi')
 
 const wsEndpoint = 'wss://api.bitfinex.com/ws/2'
+const apiKey = process.env.BITFINEX_API_KEY
+const apiSecret = process.env.BITFINEX_API_SECRET
 
 const pairConverter = createConverter([{
   normal: pairs.USDTBTC,

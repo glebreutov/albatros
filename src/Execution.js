@@ -58,6 +58,7 @@ exports.withdraw = withdraw
 async function balance (exch, assetId) {
   return getDriver(exch).balance(assetId)
 }
+exports.balance = balance
 
 const depositAwait = async (exch, assetId) => {
   const was = await balance(exch, assetId)
