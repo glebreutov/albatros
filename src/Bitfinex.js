@@ -5,20 +5,13 @@ const {bind, createConverter} = require('./tools')
 const _ = require('lodash')
 const {pairs} = require('./const')
 const debug = require('debug')('BitfinexApi')
-const fetch = require('node-fetch')
-const crypto = require('crypto')
-// todo migrate to v2
-const wsEndpoint = 'wss://api.bitfinex.com/ws/'
-// v2 here :)
-const restEndpoint = 'https://api.bitfinex.com/v2/'
+
+const wsEndpoint = 'wss://api.bitfinex.com/ws/2'
 
 const pairConverter = createConverter([{
   normal: pairs.USDTBTC,
   specific: 'BTCUSD'
 }])
-
-const apiKey = 'pPexZH3yLvmith0Xrw8284gju2qZrLHBb1Ee1skjuQZ'
-const apiSecret = 'zLUPDPfCoYcSbaqo6HmkZahSGihy5ajdYmPg3ar81Ab'
 
 class BitfinexApi extends EventEmitter {
   constructor (...args) {
@@ -37,6 +30,71 @@ class BitfinexApi extends EventEmitter {
     this.reconnectTimeout = null
     this.createSocket(true).then()
   }
+
+  parseMessage (msg) {
+    msg = JSON.parse(msg)
+    const prop = path => _.get(msg, path)
+
+    // Connection confirmed
+    if (prop('event') === 'info' && prop('version') === 2) {
+      return true
+    }
+
+    // Stop/Restart Websocket Server (please reconnect)
+    if (prop('event') === 'info' && prop('code') === 20051) {
+      // TODO:
+      // 20051 : Stop/Restart Websocket Server (please reconnect)
+      // 20060 : Entering in Maintenance mode. Please pause any activity and resume after receiving the info message 20061 (it should take 120 seconds at most).
+      // 20061 : Maintenance ended. You can resume normal activity. It is advised to unsubscribe/subscribe again all channels.
+      return true
+    }
+
+    // Book subscription confirmed
+    if (prop('event') === 'subscribed' && prop('channel') === 'book') {
+      const subscription = _.find(this.subscriptions, _.pick(msg, ['channel', 'pair']))
+      if (!subscription) {
+        debug(`ERROR: received subscription confirmation for channel ${msg.channel} / pair ${msg.pair} but no according subscription found`)
+        return false
+      }
+      debug(`subscription to ${subscription.channel} confirmed`)
+      _.assign(subscription, {
+        lastUpdated: +new Date(),
+        chanId: msg.chanId
+      })
+      return true
+    }
+
+    // data for subscription with given chanId
+    if (_.isNumber(prop(0))) {
+      const subscription = _.find(this.subscriptions, {chanId: prop(0)})
+      if (!subscription) {
+        debug(`ERROR: received data for chanId ${prop(0)} but no according subscription found`)
+        return false
+      }
+      this.onSubscriptionData(subscription, prop(1))
+      return true
+    }
+    return false
+  }
+
+  onSubscriptionData (subscription, data) {
+    subscription.lastUpdated = +new Date()
+    if (subscription.channel === 'book') {
+      // single element
+      if (_.isArray(data) && data.length && !_.isArray(data[0])) {
+        return this.onSubscriptionData(subscription, [data])
+      }
+      // [[price, _x, size], ...]
+      if (!_.isArray(data) || _.some(data, d => !_.isArray(d) || d.length !== 3)) {
+        debug('ERROR: subscription data error')
+        return
+      }
+      this.emit('bookUpdate', pairConverter.normalize(subscription.pair), data)
+      return
+    }
+    debug(`WARNING: i don't know how to handle ${subscription.channel} data`)
+  }
+
   getLastUpdated () {
     return this.subscriptions.map(s => ({pair: pairConverter.normalize(s.pair), lastUpdated: s.lastUpdated}))
   }
@@ -47,58 +105,14 @@ class BitfinexApi extends EventEmitter {
     debug('msg', msg)
     this.emit('socketMessage', msg)
     try {
-      msg = JSON.parse(msg)
-      // book subscription answers:
-      // msg {"event":"subscribed","channel":"book","chanId":83624,"prec":"P0","freq":"F0","len":"25","pair":"USDTBTC"}
-      // msg [83624,[[3774.3,3,24.71378776],[3774.2,1,0.7604], ...]
-      // msg [83624,"hb"]
-      // msg [80198,3783,1,0.5]
-      if (_.isObject(msg) && msg.event === 'subscribed') {
-        const subscription = _.find(this.subscriptions, _.pick(msg, ['channel', 'pair']))
-        if (!subscription) {
-          debug(`ERROR: received subscription confirmation for channel ${msg.channel} / pair ${msg.pair} but no according subscription found`)
-          return
-        }
-        debug(`subscription to ${subscription.channel} confirmed`)
-        _.assign(subscription, {
-          lastUpdated: +new Date(),
-          chanId: msg.chanId
-        })
-        return
-      }
-
-      if (_.isArray(msg)) {
-        const subscription = _.find(this.subscriptions, {chanId: msg[0]})
-        if (!subscription) {
-          debug(`ERROR: received data for chanId ${msg[0]} but no according subscription found`)
-          return
-        }
-        subscription.lastUpdated = +new Date()
-        if (_.isString(msg[1])) {
-          return
-        }
-        if (_.isArray(msg[1])) {
-          this.onSubscriptionData(subscription, msg[1])
-        } else {
-          msg.shift()
-          this.onSubscriptionData(subscription, [msg])
-        }
+      if (!this.parseMessage(msg)) {
+        debug('WARNING: unknown data message format')
       }
     } catch (e) {
       debug('ERROR: Could not process data from server:', e)
     }
   }
-  onSubscriptionData (subscription, data) {
-    if (subscription.channel === 'book') {
-      if (!_.isArray(data) || _.some(data, d => !_.isArray(d) || d.length !== 3)) {
-        debug('ERROR: subscription data error')
-        return
-      }
-      this.emit('bookUpdate', pairConverter.normalize(subscription.pair), data)
-      return
-    }
-    debug(`WARNING: i don't know how to handle ${subscription.channel} data`)
-  }
+
   onWSOpen () {
     this.emit('sockedOpened')
     debug(`refreshing ${this.subscriptions.length} subscriptions`)
@@ -143,38 +157,9 @@ class BitfinexApi extends EventEmitter {
     }
   }
 
-  async _wallets () {
-    const body = JSON.stringify({})
-    const headers = this._authHeaders('v2/auth/r/wallets', body)
-    const t = await fetch('https://api.bitfinex.com/v2/auth/r/wallets', {
-      method: 'POST',
-      body,
-      headers
-    })
-    const js = await t.json()
-    console.log(js)
-  }
-
-  // const apiPath = 'v2/auth/r/alerts'
-  _authHeaders (apiPath, bodyStr) {
-    const nonce = Date.now().toString()
-    let signature = `/api/${apiPath}${nonce}${bodyStr}`
-
-    signature = crypto
-      .createHmac('sha384', apiSecret)
-      .update(signature)
-      .digest('hex')
-
-    return {
-      'content-type': 'application/json',
-      'bfx-nonce': nonce,
-      'bfx-apikey': apiKey,
-      'bfx-signature': signature
-    }
-  }
-
   destroy () {
     debug('destroying')
+    clearInterval(this.reconnectTimeout)
     if (this.ws) {
       this.ws
         .removeAllListeners('error')
@@ -182,10 +167,11 @@ class BitfinexApi extends EventEmitter {
         .removeAllListeners('open')
         .removeAllListeners('close')
         .close()
+      this.ws = null
     }
-    clearInterval(this.reconnectTimeout)
     debug('destroyed')
   }
+
   // for debug purposes
   forceCloseWs () {
     debug('force shutting down ws')
@@ -208,10 +194,6 @@ class BitfinexApi extends EventEmitter {
     })
   }
 
-  async placeOrder () {
-    const order = {}
-
-  }
 }
 
 module.exports = BitfinexApi
