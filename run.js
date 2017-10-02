@@ -5,13 +5,18 @@ const _ = require('lodash')
 const Book = require('./src/Book')
 const debug = require('debug')('main')
 
-const drv1 = require('./src/BitfinexDriver')
+// const drv1 = require('./src/BitfinexDriver')
+const BFX = require('bitfinex-api-node')
 
 async function start () {
 
+  const t = new BitfinexApi()
+  t.on('auth', async () => {
+    const o = await t.testNewOrder()
+    const c = await t.testCancelOrder(o.id)
+    console.log(c)
+  })
 
-
-  // const bitfinex = new BitfinexApi()
   // bitfinex.subscribeBook(pairs.USDTBTC)
   // const bitfinexBook = new Book()
   // bitfinex.on('bookUpdate', (pair, data) => {

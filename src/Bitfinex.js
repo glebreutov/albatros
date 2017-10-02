@@ -6,6 +6,7 @@ const {bind, createConverter} = require('./tools')
 const _ = require('lodash')
 const {pairs} = require('./const')
 const debug = require('debug')('BitfinexApi')
+const Fuck = require('./fuckingBitfinex')
 
 const wsEndpoint = 'wss://api.bitfinex.com/ws/2'
 const apiKey = process.env.BITFINEX_API_KEY
@@ -15,6 +16,13 @@ const pairConverter = createConverter([{
   normal: pairs.USDTBTC,
   specific: 'BTCUSD'
 }])
+
+const resolver = (resolve, reject) => (err, data) => {
+  if (err) {
+    return reject(err)
+  }
+  resolve(data)
+}
 
 class BitfinexApi extends EventEmitter {
   constructor (...args) {
@@ -27,15 +35,44 @@ class BitfinexApi extends EventEmitter {
       'onWSError',
       'onWSMessage',
       'onWSOpen',
-      'onWSClose'
+      'onWSClose',
+      'nonceGenerator'
     ], this)
+    this.nonce = Date.now() * 1500
+    this.fuck = new Fuck(apiKey, apiSecret, {nonceGenerator: this.nonceGenerator})
     this.subscriptions = []
     this.reconnectTimeout = null
     this.createSocket(true).then()
   }
 
+  nonceGenerator () {
+    return ++this.nonce
+  }
+
+  async testNewOrder () {
+    return new Promise((resolve, reject) => {
+      this.fuck.new_order(
+        'BTCUSD',
+        '0.01',
+        '5000',
+        'bitfinex',
+        'sell',
+        'exchange limit',
+        false,
+        false,
+        resolver(resolve, reject)
+      )
+    })
+  }
+
+  async testCancelOrder (id) {
+    return new Promise((resolve, reject) => {
+      this.fuck.cancel_order(id, resolver(resolve, reject))
+    })
+  }
+
   _auth () {
-    const authNonce = Date.now() * 1000
+    const authNonce = this.nonceGenerator()
     const authPayload = 'AUTH' + authNonce
     const authSig = crypto
       .createHmac('sha384', apiSecret)
@@ -64,6 +101,7 @@ class BitfinexApi extends EventEmitter {
 
     // Auth confirmed
     if (prop('event') === 'auth' && prop('status') === 'OK') {
+      this.emit('auth')
       return true
     }
 
@@ -93,18 +131,25 @@ class BitfinexApi extends EventEmitter {
 
     // data for subscription with given chanId
     if (_.isNumber(prop(0))) {
-      const subscription = _.find(this.subscriptions, {chanId: prop(0)})
-      if (!subscription) {
-        debug(`ERROR: received data for chanId ${prop(0)} but no according subscription found`)
-        return false
-      }
-      this.onSubscriptionData(subscription, prop(1))
+      this.onSubscriptionData(prop(0), prop(1), prop(2))
       return true
     }
     return false
   }
 
-  onSubscriptionData (subscription, data) {
+  onSubscriptionData (chanId, data, dataEx) {
+    const subscription = _.find(this.subscriptions, {chanId})
+    if (chanId && !subscription) {
+      debug(`ERROR: received data for chanId ${chanId} but no according subscription found`)
+      return false
+    }
+    if (chanId === 0) {
+      if (data !== 'hb') {
+        console.log('Subscription 0 data: ', JSON.stringify(data), JSON.stringify(dataEx))
+      }
+      return
+    }
+
     subscription.lastUpdated = +new Date()
     if (subscription.channel === 'book') {
       // single element
@@ -129,7 +174,10 @@ class BitfinexApi extends EventEmitter {
     debug('ws error', err)
   }
   onWSMessage (msg) {
-    debug('msg', msg)
+    // debug('msg', msg)
+    if (!msg.includes('"hb"')) {
+      debug('msg', msg)
+    }
     this.emit('socketMessage', msg)
     try {
       if (!this.parseMessage(msg)) {
