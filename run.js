@@ -5,21 +5,21 @@ const _ = require('lodash')
 const Book = require('./src/Book')
 const debug = require('debug')('main')
 
-// const drv1 = require('./src/BitfinexRestDriver')
+const drv1 = require('./src/BitfinexDriver')
 
 async function start () {
 
 
-  // await drv1.buy()
-  const bitfinex = new BitfinexApi()
-  bitfinex.subscribeBook(pairs.USDTBTC)
-  const bitfinexBook = new Book()
-  bitfinex.on('bookUpdate', (pair, data) => {
-    bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[2] < 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
-    bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
-    bitfinexBook.updateLevels(sides.BID, data.filter(d => d[2] > 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
-    bitfinexBook.updateLevels(sides.BID, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
-  })
+
+  // const bitfinex = new BitfinexApi()
+  // bitfinex.subscribeBook(pairs.USDTBTC)
+  // const bitfinexBook = new Book()
+  // bitfinex.on('bookUpdate', (pair, data) => {
+  //   bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[2] < 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
+  //   bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
+  //   bitfinexBook.updateLevels(sides.BID, data.filter(d => d[2] > 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
+  //   bitfinexBook.updateLevels(sides.BID, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
+  // })
   //
   // const bittrex = new BittrexApi()
   // bittrex.subscribe([pairs.USDTBTC])

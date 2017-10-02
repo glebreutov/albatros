@@ -1,6 +1,7 @@
 /* eslint-env node */
 const WebSocket = require('ws')
 const EventEmitter = require('events')
+const crypto = require('crypto')
 const {bind, createConverter} = require('./tools')
 const _ = require('lodash')
 const {pairs} = require('./const')
@@ -33,12 +34,36 @@ class BitfinexApi extends EventEmitter {
     this.createSocket(true).then()
   }
 
+  _auth () {
+    const authNonce = Date.now() * 1000
+    const authPayload = 'AUTH' + authNonce
+    const authSig = crypto
+      .createHmac('sha384', apiSecret)
+      .update(authPayload)
+      .digest('hex')
+
+    const payload = {
+      apiKey,
+      authSig,
+      authNonce,
+      authPayload,
+      event: 'auth'
+    }
+
+    this.ws.send(JSON.stringify(payload))
+  }
+
   parseMessage (msg) {
     msg = JSON.parse(msg)
     const prop = path => _.get(msg, path)
 
     // Connection confirmed
     if (prop('event') === 'info' && prop('version') === 2) {
+      return true
+    }
+
+    // Auth confirmed
+    if (prop('event') === 'auth' && prop('status') === 'OK') {
       return true
     }
 
@@ -118,6 +143,7 @@ class BitfinexApi extends EventEmitter {
   onWSOpen () {
     this.emit('sockedOpened')
     debug(`refreshing ${this.subscriptions.length} subscriptions`)
+    this._auth()
     this.subscriptions.forEach(this._subscribe)
   }
   onWSClose (...args) {
