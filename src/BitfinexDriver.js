@@ -21,8 +21,13 @@ exports.newOrder = async (pair, price, size, side) => {
       error: e
     }
   }
-  if (!order.id && !order.error) {
-    order.ack = false
+
+  if (order.id) {
+    order.ack = true
+    return order
+  }
+  order.ack = false
+  if (!order.error) {
     order.error = 'unknown'
   }
   return order
@@ -36,17 +41,35 @@ exports.cancel = async (order) => {
   return api.cancelOrder(order)
 }
 
-// controller: {continue: bool}
+// controller: Promise
 exports.waitForExec = async (order, controller) => {
-  do {
-    await sleep(1000)
-    try {
-      order = await api.getOrderStatus(order.id)
-    } catch (e) {
-      console.log(e)
+  if (!order.id) {
+    throw new Error('order.id is not valid')
+  }
+
+  async function request (loopBreaker) {
+    while (true) {
+      if (!loopBreaker.continue) { break }
+      await sleep(500)
+      if (!loopBreaker.continue) { break }
+      console.log('requesting order status')
+      const newOrderStatus = await api.getOrderStatus(order.id)
+      if (!newOrderStatus.is_live) {
+        return newOrderStatus
+      }
     }
-  } while (order.is_live && controller.continue)
-  return order
+    console.log('loop breaked')
+  }
+
+  const c = {continue: true}
+  const result = await Promise.race([
+    request(c),
+    controller
+  ])
+  // break the loop
+  console.log('breaking the loop')
+  c.continue = false
+  return result
 }
 
 exports.withdraw = async (assetId, wallet) => {

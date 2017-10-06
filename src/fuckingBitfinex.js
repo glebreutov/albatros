@@ -18,12 +18,13 @@ function Rest (key, secret, opts = {}) {
 }
 
 Rest.prototype.make_request = function (path, params, cb) {
-  var headers, key, nonce, path, payload, signature, url, value
+  var headers, key, nonce, payload, signature, url, value
   if (!this.key || !this.secret) {
     return cb(new Error('missing api key or secret'))
   }
   url = `${this.url}/${this.version}/${path}`
   nonce = JSON.stringify(this.generateNonce())
+  console.log('nonce is', nonce, url)
   payload = {
     request: `/${this.version}/${path}`,
     nonce

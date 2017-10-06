@@ -43,3 +43,10 @@ exports.assert = function assert (condition, message) {
 exports.sleep = async function (ms, resolveWith) {
   return new Promise(resolve => setTimeout(resolve, ms, resolveWith))
 }
+
+exports.sleepLog = async function (ms, resolveWith) {
+  return new Promise(resolve => setTimeout(() => {
+    console.log('timed out')
+    resolve(resolveWith)
+  }, ms, resolveWith))
+}

@@ -4,7 +4,7 @@ const {pairs, sides} = require('./src/const')
 const _ = require('lodash')
 const Book = require('./src/Book')
 const debug = require('debug')('main')
-const {sleep} = require('./src/tools')
+const {sleep, sleepLog} = require('./src/tools')
 
 const drv1 = require('./src/BitfinexDriver')
 const api = new BitfinexApi()
@@ -18,22 +18,25 @@ async function start () {
     order = await drv1.newOrder(pairs.USDTBTC, 5000, 0.01, sides.ASK)
   }
 
-  const waitC = {continue: true}
-  const deadOrder = await Promise.race([
-    drv1.waitForExec(order, waitC),
-    sleep(6000, false)
-  ])
+  if (order.ack) {
 
-  if (deadOrder) {
-    // ...
-  } else {
-    waitC.continue = false
+    console.log('waiting for exec')
+    const deadOrder = await drv1.waitForExec(order, sleepLog(6000, false))
+
+    if (deadOrder) {
+      // ...
+    }
   }
 
   const orders = await api.getActiveOrders()
-  await Promise.all(orders.map(ord => api.cancelOrder(ord.id)))
-
-
+  console.log('waiting just for debug purposes')
+  await sleepLog(7000)
+  console.log(`found ${orders.length} orders`)
+  for (const order of orders) {
+    await api.cancelOrder(order.id)
+  }
+  console.log('orders cancelled')
+  process.exit(0)
   // bitfinex.subscribeBook(pairs.USDTBTC)
   // const bitfinexBook = new Book()
   // bitfinex.on('bookUpdate', (pair, data) => {
