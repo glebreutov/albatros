@@ -39,3 +39,7 @@ exports.assert = function assert (condition, message) {
     throw new Error(message)
   }
 }
+
+exports.sleep = async function (ms, resolveWith) {
+  return new Promise(resolve => setTimeout(resolve, ms, resolveWith))
+}

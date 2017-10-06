@@ -4,18 +4,35 @@ const {pairs, sides} = require('./src/const')
 const _ = require('lodash')
 const Book = require('./src/Book')
 const debug = require('debug')('main')
+const {sleep} = require('./src/tools')
 
-// const drv1 = require('./src/BitfinexDriver')
-const BFX = require('bitfinex-api-node')
+const drv1 = require('./src/BitfinexDriver')
+const api = new BitfinexApi()
 
 async function start () {
 
-  const t = new BitfinexApi()
-  t.on('auth', async () => {
-    const o = await t.testNewOrder()
-    const c = await t.testCancelOrder(o.id)
-    console.log(c)
-  })
+  // should fail
+  let order = await drv1.newOrder(pairs.USDTBTC, 5000, 2, sides.ASK)
+  if (!order.ack) {
+    // should place an order
+    order = await drv1.newOrder(pairs.USDTBTC, 5000, 0.01, sides.ASK)
+  }
+
+  const waitC = {continue: true}
+  const deadOrder = await Promise.race([
+    drv1.waitForExec(order, waitC),
+    sleep(6000, false)
+  ])
+
+  if (deadOrder) {
+    // ...
+  } else {
+    waitC.continue = false
+  }
+
+  const orders = await api.getActiveOrders()
+  await Promise.all(orders.map(ord => api.cancelOrder(ord.id)))
+
 
   // bitfinex.subscribeBook(pairs.USDTBTC)
   // const bitfinexBook = new Book()
