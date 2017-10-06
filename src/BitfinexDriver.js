@@ -77,7 +77,7 @@ exports.withdraw = async (assetId, wallet) => {
 }
 
 exports.balance = async (assetId) => {
-  return constantFail
+  return api.balance(assetId)
 }
 
 exports.depositAwait = async (assetId) => {

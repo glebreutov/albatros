@@ -11,32 +11,41 @@ const api = new BitfinexApi()
 
 async function start () {
 
-  // should fail
-  let order = await drv1.newOrder(pairs.USDTBTC, 5000, 2, sides.ASK)
-  if (!order.ack) {
-    // should place an order
-    order = await drv1.newOrder(pairs.USDTBTC, 5000, 0.01, sides.ASK)
-  }
+  const t = await drv1.balance(pairs.USDTBTC.counter)
+  console.log(t)
 
-  if (order.ack) {
+  // -------------------
+  // working example 1
+  // -------------------
+  // // should fail
+  // let order = await drv1.newOrder(pairs.USDTBTC, 5000, 2, sides.ASK)
+  // if (!order.ack) {
+  //   // should place an order
+  //   order = await drv1.newOrder(pairs.USDTBTC, 5000, 0.01, sides.ASK)
+  // }
+  //
+  // if (order.ack) {
+  //   console.log('waiting for exec')
+  //   const deadOrder = await drv1.waitForExec(order, sleepLog(6000, false))
+  //
+  //   if (deadOrder) {
+  //     // ...
+  //   }
+  // }
+  //
+  // const orders = await api.getActiveOrders()
+  // console.log('waiting just for debug purposes')
+  // await sleepLog(7000)
+  // console.log(`found ${orders.length} orders`)
+  // for (const order of orders) {
+  //   await api.cancelOrder(order.id)
+  // }
+  // console.log('orders cancelled')
+  // process.exit(0)
 
-    console.log('waiting for exec')
-    const deadOrder = await drv1.waitForExec(order, sleepLog(6000, false))
-
-    if (deadOrder) {
-      // ...
-    }
-  }
-
-  const orders = await api.getActiveOrders()
-  console.log('waiting just for debug purposes')
-  await sleepLog(7000)
-  console.log(`found ${orders.length} orders`)
-  for (const order of orders) {
-    await api.cancelOrder(order.id)
-  }
-  console.log('orders cancelled')
-  process.exit(0)
+  // -------------------
+  // working example 2
+  // -------------------
   // bitfinex.subscribeBook(pairs.USDTBTC)
   // const bitfinexBook = new Book()
   // bitfinex.on('bookUpdate', (pair, data) => {

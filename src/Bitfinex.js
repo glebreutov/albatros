@@ -23,6 +23,7 @@ function nonceGenerator () {
   return ++nonce
 }
 
+// todo: include this fuck into BitfinexApi
 const fuck = new Fuck(apiKey, apiSecret, {nonceGenerator})
 const awf = async function (method, ...args) {
   return new Promise((resolve, reject) => {
@@ -41,6 +42,14 @@ const sideConverter = createConverter([{
 }, {
   normal: sides.ASK,
   specific: 'sell'
+}])
+
+const assetConverter = createConverter([{
+  normal: pairs.USDTBTC.base,
+  specific: 'usd'
+},{
+  normal: pairs.USDTBTC.counter,
+  specific: 'btc'
 }])
 
 class BitfinexApi extends EventEmitter {
@@ -91,6 +100,13 @@ class BitfinexApi extends EventEmitter {
 
   async cancelOrder (id) {
     return awf(fuck.cancel_order, id)
+  }
+
+  async balance (assetId) {
+    const wallets = await awf(fuck.wallet_balances)
+    return wallets
+      .filter(w => w.currency === assetConverter.denormalize(assetId))
+      .reduce((acc, next) => acc + parseFloat(next.amount), 0)
   }
 
   // _auth () {
