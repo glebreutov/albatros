@@ -11,37 +11,22 @@ const api = new BitfinexApi()
 
 async function start () {
 
-  const t = await drv1.balance(pairs.USDTBTC.counter)
-  console.log(t)
+  // let order = await drv1.openPosition('', 0.005, sides.ASK)
+  // const t = await api.getActiveOrders()
+  // const t2 = await api.getOrderStatus(4230548740)
 
-  // -------------------
-  // working example 1
-  // -------------------
-  // // should fail
-  // let order = await drv1.newOrder(pairs.USDTBTC, 5000, 2, sides.ASK)
-  // if (!order.ack) {
-  //   // should place an order
-  //   order = await drv1.newOrder(pairs.USDTBTC, 5000, 0.01, sides.ASK)
-  // }
-  //
-  // if (order.ack) {
-  //   console.log('waiting for exec')
-  //   const deadOrder = await drv1.waitForExec(order, sleepLog(6000, false))
-  //
-  //   if (deadOrder) {
-  //     // ...
-  //   }
-  // }
-  //
-  // const orders = await api.getActiveOrders()
-  // console.log('waiting just for debug purposes')
-  // await sleepLog(7000)
-  // console.log(`found ${orders.length} orders`)
-  // for (const order of orders) {
-  //   await api.cancelOrder(order.id)
-  // }
-  // console.log('orders cancelled')
-  // process.exit(0)
+  // BTC cannot be used for Margin Trading. Transfer to Margin wallet not possible.
+  // const a = await api.internalTransfer(0.005, pairs.USDTBTC.counter, 'exchange', 'trading')
+  // USD cannot be used for Margin Trading. Transfer to Margin wallet not possible.
+  // const b = await api.internalTransfer(0.005, pairs.USDTBTC.base, 'exchange', 'trading')
+
+
+  // const w = await api.getWallets()
+  // Error: Invalid offer:
+  // Insufficient Margin Wallet tradable balance to take a loan this large.
+  // const b4 = await drv1.openPosition(pairs.USDTBTC.counter, 0.001)
+  // const credits = api.credits()
+
 
   // -------------------
   // working example 2

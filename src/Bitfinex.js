@@ -47,7 +47,7 @@ const sideConverter = createConverter([{
 const assetConverter = createConverter([{
   normal: pairs.USDTBTC.base,
   specific: 'usd'
-},{
+}, {
   normal: pairs.USDTBTC.counter,
   specific: 'btc'
 }])
@@ -67,17 +67,36 @@ class BitfinexApi extends EventEmitter {
     ], this)
     this.subscriptions = []
     this.reconnectTimeout = null
-
-    // const w = {promise: new Promise((resolve, reject) => {
-    //   w.resolve = resolve
-    //   w.reject = reject
-    // })}
-    // this.connectionWaiter = w
-
     this.createSocket(true).then()
   }
 
-  async newOrder (pair, price, size, side) {
+  static async getOrderBook (pair) {
+    return awf(fuck.orderbook, pairConverter.denormalize(pair))
+  }
+
+  static async positions () {
+    return awf(fuck.active_positions)
+  }
+
+  static async internalTransfer (amount, assetId, from, to) {
+    return awf(fuck.transfer, amount.toString(), assetConverter.denormalize(assetId), from, to)
+  }
+
+  static async loan (assetId, size) {
+    return awf(fuck.new_offer,
+      assetConverter.denormalize(assetId),
+      size.toString(),
+      '0',
+      1,
+      'loan'
+    )
+  }
+
+  static async credits () {
+    return awf(fuck.active_credits)
+  }
+
+  static async newOrder (pair, price, size, side) {
     return awf(fuck.new_order,
       pairConverter.denormalize(pair),
       size.toString(),
@@ -90,20 +109,23 @@ class BitfinexApi extends EventEmitter {
     )
   }
 
-  async getOrderStatus (id) {
+  static async getOrderStatus (id) {
     return awf(fuck.order_status, id)
   }
 
-  async getActiveOrders () {
+  static async getActiveOrders () {
     return awf(fuck.active_orders)
   }
 
-  async cancelOrder (id) {
+  static async cancelOrder (id) {
     return awf(fuck.cancel_order, id)
   }
 
-  async balance (assetId) {
-    const wallets = await awf(fuck.wallet_balances)
+  static async getWallets () {
+    return awf(fuck.wallet_balances)
+  }
+  static async balance (assetId) {
+    const wallets = await this.getWallets()
     return wallets
       .filter(w => w.currency === assetConverter.denormalize(assetId))
       .reduce((acc, next) => acc + parseFloat(next.amount), 0)

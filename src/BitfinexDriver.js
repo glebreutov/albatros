@@ -4,16 +4,37 @@ const {sleep} = require('./tools')
 
 const constantFail = {ack: false}
 
-const api = new BitfinexApi()
-
 exports.openPosition = async (assetId, size, side) => {
-  return constantFail
+
+}
+
+exports.loan = async (assetId, size) => {
+  let order
+  try {
+    order = await BitfinexApi.loan(assetId, size)
+  } catch (e) {
+    debug('ERROR: could not loan: ', e)
+    order = {
+      ack: false,
+      error: e
+    }
+  }
+
+  if (order.id) {
+    order.ack = true
+    return order
+  }
+  order.ack = false
+  if (!order.error) {
+    order.error = 'unknown'
+  }
+  return order
 }
 
 exports.newOrder = async (pair, price, size, side) => {
   let order
   try {
-    order = await api.newOrder(pair, price, size, side)
+    order = await BitfinexApi.newOrder(pair, price, size, side)
   } catch (e) {
     debug('ERROR: could not place order: ', e)
     order = {
@@ -38,7 +59,7 @@ exports.closePosition = async (pos) => {
 }
 
 exports.cancel = async (order) => {
-  return api.cancelOrder(order)
+  return BitfinexApi.cancelOrder(order.id)
 }
 
 // controller: Promise
@@ -52,13 +73,13 @@ exports.waitForExec = async (order, controller) => {
       if (!loopBreaker.continue) { break }
       await sleep(500)
       if (!loopBreaker.continue) { break }
-      console.log('requesting order status')
-      const newOrderStatus = await api.getOrderStatus(order.id)
+      debug('requesting order status')
+      const newOrderStatus = await BitfinexApi.getOrderStatus(order.id)
       if (!newOrderStatus.is_live) {
         return newOrderStatus
       }
     }
-    console.log('loop breaked')
+    debug('loop breaked')
   }
 
   const c = {continue: true}
@@ -67,7 +88,7 @@ exports.waitForExec = async (order, controller) => {
     controller
   ])
   // break the loop
-  console.log('breaking the loop')
+  debug('breaking the loop')
   c.continue = false
   return result
 }
@@ -77,7 +98,7 @@ exports.withdraw = async (assetId, wallet) => {
 }
 
 exports.balance = async (assetId) => {
-  return api.balance(assetId)
+  return BitfinexApi.balance(assetId)
 }
 
 exports.depositAwait = async (assetId) => {
