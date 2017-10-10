@@ -7,7 +7,7 @@ const calculate = require('./calc/arb_calc').calculate
 const fees = require('./calc/fees')
 // const exec = require('./src/executionApi')
 const exec = require('./src/Execution')
-const sleep = require('./src/sleep').sleep
+const sleep = require('./src/tools').sleep
 
 function adaptBook (book, side) {
   return book.getLevels(side).map(x => ({price: parseFloat(x[Book.INDEX_PRICE]), size: parseFloat(x[Book.INDEX_SIZE])}))
@@ -18,17 +18,19 @@ function profitTreshold (arbRes) {
 }
 
 async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sellWallet, buyWallet) {
-  const pos = await exec.openShortPosition(buyExch, pair, size)
+  // getting loan btc for usdt on bitf.
+  const pos = await exec.openShortPosition(sellExch, pair, size)
   if (!pos.ack) {
     console.error(`can't open position ${pos}`)
     return false
   }
+  // buy btc on btrx
   const buyOrder = await exec.buy(buyExch, pair, buyPrice, size)
   if (!buyOrder.ack) {
     console.error(`can't buy ${buyOrder}`)
     return false
   }
-
+  // sell loaned btc on bitf. price lock!
   const sellOrder = await exec.sell(sellExch, sellPrice, size)
   if (!sellOrder.ack) {
     console.error(`can't sell ${sellOrder}`)
@@ -43,23 +45,28 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   await exec.cancel(buyOrder)
   await exec.cancel(sellOrder)
 
+  // transfer BTC from BTRX to BITF
+  // todo: and wait for btc deposit at BITF
   const transferStatus = await exec.transferFunds(buyExch, sellExch, pair.counter, buyWallet)
   if (!transferStatus.ack) {
     console.error(`can't withdraw funds from ${buyExch} to ${sellExch} details: ${transferStatus}`)
     return false
   }
 
+  // return loan on BITF
+  const posClosed = await exec.closePosition(sellExch, pos)
+  if (!posClosed.ack) {
+    console.error(`unable to close position ${posClosed}`)
+    return false
+  }
+
+  // transfer usdt form bitf to btrx
   const backtransferStatsu = await exec.transferFunds(sellExch, buyExch, pair.base, sellWallet)
   if (!backtransferStatsu.ack) {
     console.error(`can't withdraw funds from ${sellExch} to ${buyExch} details ${backtransferStatsu}`)
     return false
   }
 
-  const posClosed = await exec.closePosition(pos)
-  if (!posClosed.ack) {
-    console.error(`unable to close position ${posClosed}`)
-    return false
-  }
   return true
 }
 

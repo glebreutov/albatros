@@ -13,6 +13,7 @@ const apiKey = process.env.BITFINEX_API_KEY
 const apiSecret = process.env.BITFINEX_API_SECRET
 
 const pairConverter = createConverter([{
+  // TODO {base: 'USDT', counter: 'BTC'},
   normal: pairs.USDTBTC,
   specific: 'BTCUSD'
 }])
