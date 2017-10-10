@@ -7,6 +7,7 @@ const calculate = require('./calc/arb_calc').calculate
 const fees = require('./calc/fees')
 // const exec = require('./src/executionApi')
 const exec = require('./src/Execution')
+const sleep = require('./src/sleep').sleep
 
 function adaptBook (book, side) {
   return book.getLevels(side).map(x => ({price: parseFloat(x[Book.INDEX_PRICE]), size: parseFloat(x[Book.INDEX_SIZE])}))
@@ -36,7 +37,7 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
 
   await Promise.race([
     Promise.all([exec.waitForExec(sellOrder), exec.waitForExec(buyOrder)]),
-    new Promise((resolve) => setTimeout(resolve, 1000, 'one'))
+    sleep(4000)
   ])
 
   await exec.cancel(buyOrder)
@@ -78,7 +79,8 @@ async function calc (book1, book2, exch1Name, exch2Name, pair) {
   }
 }
 
-async function main (pair) {
+async function main (config) {
+  const pair = config.pair
   const bitfinex = new BitfinexApi()
   bitfinex.subscribeBook(pair)
   const bitfinexBook = new Book()
@@ -106,4 +108,9 @@ async function main (pair) {
   )
 }
 
-main(pairs.USDTBTC).then()
+const config = process.argv.slice(2).map(x => x.split('=')).reduce((acc, val) => {
+  acc[val[0]] = val[1]
+  return acc
+}, {})
+console.log(config)
+main(config).then()
