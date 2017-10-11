@@ -3,7 +3,7 @@ services:
   web:
     build: .
     environment:
-      - DEBUG=*
+      - PAIR=USDTBTC
+      - BITF=CqFkarR2opKSrNCYhe0R3DpBbC6cA6Zng6VfYGPGLTG:1Yr8bHgcmAnjLGkjJJuOMfJJ7Dp78fxRhpTzQXUz3Xb
+      - BTRX=6fcaa371b3964427b214852323518634:54138e62efca4c1790ab9c0bff2c196a
     command: npm start
-    ports:
-      - "3000:3000"

@@ -1,4 +1,6 @@
 const BitfinexApi = require('./src/BitfinexWS')
+const bitfinexDriver = require('./src/BitfinexDriver')
+
 const BittrexApi = require('./src/Bittrex')
 const {pairs, sides} = require('./src/const')
 const _ = require('lodash')
@@ -80,7 +82,9 @@ async function calc (book1, book2, exch1Name, exch2Name, pair) {
   if (buyDepth.length > 5 && sellDepth.length > 5) {
     const arbRes = calculate(buyDepth, sellDepth, fees1.taker, fees2.taker, fees1.withdrawal.BTC, fees2.withdrawal.USDT, myFunds)
     if (profitTreshold(arbRes)) {
-      await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.volume, exch1Name, exch2Name, pair)
+      // await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.volume, exch1Name, exch2Name, pair)
+      console.log(arbRes)
+      console.log('----')
     }
     // console.log(arbRes)
   }
@@ -89,6 +93,10 @@ async function calc (book1, book2, exch1Name, exch2Name, pair) {
 async function main (config) {
   const pair = config.pair
   const bitfinex = new BitfinexApi()
+  const createNonceGenerator = require('./src/createNonceGenerator')
+  const nonceGen = createNonceGenerator()
+  bitfinexDriver.setKeys(config.BITF.key, config.BITF.secret, nonceGen)
+
   bitfinex.subscribeBook(pair)
   const bitfinexBook = new Book()
   bitfinex.on('bookUpdate', (pair, data) => {
@@ -114,10 +122,18 @@ async function main (config) {
     () => calc(bittrexBook, bitfinexBook, 'BTRX', 'BITF', pair)
   )
 }
+const config = {
+  BITF: {
+    key: process.env.BITF.split(':')[0],
+    secret: process.env.BITF.split(':')[1]
+  },
+  BTRX: {
+    key: process.env.BTRX.split(':')[0],
+    secret: process.env.BTRX.split(':')[1]
+  },
+  pair: pairs[process.env.PAIR]
+}
 
-const config = process.argv.slice(2).map(x => x.split('=')).reduce((acc, val) => {
-  acc[val[0]] = val[1]
-  return acc
-}, {})
 console.log(config)
+
 main(config).then()

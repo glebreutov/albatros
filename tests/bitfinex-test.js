@@ -1,17 +1,17 @@
-const BitfinexApi = require('./src/BitfinexRest')
+const BitfinexApi = require('../src/BitfinexRest')
 const debug = require('debug')('Test:BitfinexDriver')
-const {pairs, sides} = require('./src/const')
-const {sleep, assert} = require('./src/tools')
+const {pairs, sides} = require('../src/const')
+const {sleep, assert} = require('../src/tools')
 const _ = require('lodash')
 
-const createNonceGenerator = require('./src/createNonceGenerator')
+const createNonceGenerator = require('../src/createNonceGenerator')
 
 const nonceGen = createNonceGenerator()
 const key = process.env.BITFINEX_API_KEY
 const secret = process.env.BITFINEX_API_SECRET
 
 // main driver to test
-const drv1 = require('./src/BitfinexDriver')
+const drv1 = require('../src/BitfinexDriver')
 drv1.setKeys(key, secret, nonceGen)
 
 // one more REST api instance to test

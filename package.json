@@ -4,7 +4,7 @@
   "description": "",
   "main": "run.js",
   "scripts": {
-    "start": "node run.js",
+    "start": "node run-calc.js",
     "test": "node bitfinex-test.js"
   },
   "repository": {
