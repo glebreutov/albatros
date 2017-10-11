@@ -1,4 +1,4 @@
-const BitfinexApi = require('./src/Bitfinex')
+const BitfinexApi = require('./src/BitfinexWS')
 const BittrexApi = require('./src/Bittrex')
 const {pairs, sides} = require('./src/const')
 const _ = require('lodash')

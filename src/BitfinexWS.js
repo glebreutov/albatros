@@ -1,56 +1,16 @@
 /* eslint-env node */
 const WebSocket = require('ws')
 const EventEmitter = require('events')
-const crypto = require('crypto')
 const {bind, createConverter} = require('./tools')
 const _ = require('lodash')
-const {pairs, sides} = require('./const')
+const {pairs} = require('./const')
 const debug = require('debug')('BitfinexApi')
-const Fuck = require('./fuckingBitfinex')
 
 const wsEndpoint = 'wss://api.bitfinex.com/ws/2'
-const apiKey = process.env.BITFINEX_API_KEY
-const apiSecret = process.env.BITFINEX_API_SECRET
 
 const pairConverter = createConverter([{
-  // TODO {base: 'USDT', counter: 'BTC'},
   normal: pairs.USDTBTC,
   specific: 'BTCUSD'
-}])
-
-// one nonce generator for all api instances (nonce must be increasing)
-let nonce = Date.now()
-function nonceGenerator () {
-  return ++nonce
-}
-
-// todo: include this fuck into BitfinexApi
-const fuck = new Fuck(apiKey, apiSecret, {nonceGenerator})
-const awf = async function (method, ...args) {
-  return new Promise((resolve, reject) => {
-    method.apply(fuck, args.concat((err, data) => {
-      if (err) {
-        return reject(err)
-      }
-      resolve(data)
-    }))
-  })
-}
-
-const sideConverter = createConverter([{
-  normal: sides.BID,
-  specific: 'buy'
-}, {
-  normal: sides.ASK,
-  specific: 'sell'
-}])
-
-const assetConverter = createConverter([{
-  normal: pairs.USDTBTC.base,
-  specific: 'usd'
-}, {
-  normal: pairs.USDTBTC.counter,
-  specific: 'btc'
 }])
 
 class BitfinexApi extends EventEmitter {
@@ -69,67 +29,6 @@ class BitfinexApi extends EventEmitter {
     this.subscriptions = []
     this.reconnectTimeout = null
     this.createSocket(true).then()
-  }
-
-  static async getOrderBook (pair) {
-    return awf(fuck.orderbook, pairConverter.denormalize(pair))
-  }
-
-  static async positions () {
-    return awf(fuck.active_positions)
-  }
-
-  static async internalTransfer (amount, assetId, from, to) {
-    return awf(fuck.transfer, amount.toString(), assetConverter.denormalize(assetId), from, to)
-  }
-
-  static async loan (assetId, size) {
-    return awf(fuck.new_offer,
-      assetConverter.denormalize(assetId),
-      size.toString(),
-      '0',
-      1,
-      'loan'
-    )
-  }
-
-  static async credits () {
-    return awf(fuck.active_credits)
-  }
-
-  static async newOrder (pair, price, size, side) {
-    return awf(fuck.new_order,
-      pairConverter.denormalize(pair),
-      size.toString(),
-      price.toString(),
-      'bitfinex',
-      sideConverter.denormalize(side),
-      'exchange limit',
-      false,
-      false
-    )
-  }
-
-  static async getOrderStatus (id) {
-    return awf(fuck.order_status, id)
-  }
-
-  static async getActiveOrders () {
-    return awf(fuck.active_orders)
-  }
-
-  static async cancelOrder (id) {
-    return awf(fuck.cancel_order, id)
-  }
-
-  static async getWallets () {
-    return awf(fuck.wallet_balances)
-  }
-  static async balance (assetId) {
-    const wallets = await this.getWallets()
-    return wallets
-      .filter(w => w.currency === assetConverter.denormalize(assetId))
-      .reduce((acc, next) => acc + parseFloat(next.amount), 0)
   }
 
   // _auth () {

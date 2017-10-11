@@ -1,17 +1,26 @@
-const BitfinexApi = require('./Bitfinex')
+const BitfinexRest = require('./BitfinexRest')
 const debug = require('debug')('BitfinexDriver')
-const {sleep} = require('./tools')
+const {assert, sleep} = require('./tools')
 
 const constantFail = {ack: false}
 
-exports.openPosition = async (assetId, size, side) => {
+let apiInstance
+function api () {
+  assert(apiInstance, 'call setKeys() first')
+  return apiInstance
+}
+exports.setKeys = (apiKey, apiSecret, nonceGenerator) => {
+  apiInstance = new BitfinexRest(apiKey, apiSecret, nonceGenerator)
+}
 
+exports.openPosition = async (assetId, size, side) => {
+  return constantFail
 }
 
 exports.loan = async (assetId, size) => {
   let order
   try {
-    order = await BitfinexApi.loan(assetId, size)
+    order = await api().loan(assetId, size)
   } catch (e) {
     debug('ERROR: could not loan: ', e)
     order = {
@@ -34,7 +43,7 @@ exports.loan = async (assetId, size) => {
 exports.newOrder = async (pair, price, size, side) => {
   let order
   try {
-    order = await BitfinexApi.newOrder(pair, price, size, side)
+    order = await api().newOrder(pair, price, size, side)
   } catch (e) {
     debug('ERROR: could not place order: ', e)
     order = {
@@ -49,7 +58,7 @@ exports.newOrder = async (pair, price, size, side) => {
   }
   order.ack = false
   if (!order.error) {
-    order.error = 'unknown'
+    order.error = new Error('Unknown error')
   }
   return order
 }
@@ -59,7 +68,7 @@ exports.closePosition = async (pos) => {
 }
 
 exports.cancel = async (order) => {
-  return BitfinexApi.cancelOrder(order.id)
+  return api().cancelOrder(order.id)
 }
 
 // controller: Promise
@@ -74,7 +83,7 @@ exports.waitForExec = async (order, controller) => {
       await sleep(500)
       if (!loopBreaker.continue) { break }
       debug('requesting order status')
-      const newOrderStatus = await BitfinexApi.getOrderStatus(order.id)
+      const newOrderStatus = await api().getOrderStatus(order.id)
       if (!newOrderStatus.is_live) {
         return newOrderStatus
       }
@@ -98,7 +107,7 @@ exports.withdraw = async (assetId, wallet) => {
 }
 
 exports.balance = async (assetId) => {
-  return BitfinexApi.balance(assetId)
+  return api().balance(assetId)
 }
 
 exports.depositAwait = async (assetId) => {
