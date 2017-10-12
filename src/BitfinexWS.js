@@ -1,17 +1,23 @@
 /* eslint-env node */
 const WebSocket = require('ws')
 const EventEmitter = require('events')
-const {bind, createConverter} = require('./tools')
+const {bind, assert, createConverter} = require('./tools')
 const _ = require('lodash')
-const {pairs} = require('./const')
+const {pairs, bitfinexSymbols} = require('./const')
 const debug = require('debug')('BitfinexApi')
 
 const wsEndpoint = 'wss://api.bitfinex.com/ws/2'
 
-const pairConverter = createConverter([{
-  normal: pairs.USDTBTC,
-  specific: 'BTCUSD'
-}])
+const pairDict = Object.keys(pairs).map(pairKey => {
+  const pair = pairs[pairKey]
+  const symbol = (pair.counter + pair.base).replace('USDT', 'USD')
+  return {
+    normal: pair,
+    specific: symbol
+  }
+})
+
+const pairConverter = createConverter(pairDict)
 
 class BitfinexApi extends EventEmitter {
   constructor (...args) {
@@ -120,7 +126,7 @@ class BitfinexApi extends EventEmitter {
     if (subscription.channel === 'book') {
       // single element
       if (_.isArray(data) && data.length && !_.isArray(data[0])) {
-        return this.onSubscriptionData(subscription, [data])
+        return this.onSubscriptionData(subscription.chanId, [data])
       }
       // [[price, _x, size], ...]
       if (!_.isArray(data) || _.some(data, d => !_.isArray(d) || d.length !== 3)) {

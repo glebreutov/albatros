@@ -6,10 +6,15 @@ const _ = require('lodash')
 const {pairs} = require('./const')
 const debug = require('debug')('BittrexApi')
 
-const converter = createConverter([{
-  normal: pairs.USDTBTC,
-  specific: 'USDT-BTC'
-}])
+const pairDict = Object.keys(pairs).map(pairKey => {
+  const pair = pairs[pairKey]
+  return {
+    normal: pair,
+    specific: `${pair.base}-${pair.counter}`
+  }
+})
+
+const converter = createConverter(pairDict)
 
 // https://github.com/dparlevliet/node.bittrex.api#websockets
 class BittrexApi extends EventEmitter {

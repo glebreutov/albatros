@@ -20,7 +20,7 @@ exports.createConverter = function createConverter (arr) {
   const createFinder = (findKey, getKey) => val => {
     const found = _.find(arr, {[findKey]: val})
     if (!found) {
-      throw new Error(`Value ${val} can't be ${findKey === 'normal' ? 'specified' : 'normalized'}`)
+      throw new Error(`Value ${JSON.stringify(val)} can't be ${findKey === 'normal' ? 'specified' : 'normalized'}`)
     }
     return found[getKey]
   }

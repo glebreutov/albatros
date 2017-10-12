@@ -90,40 +90,48 @@ async function calc (book1, book2, exch1Name, exch2Name, pair) {
     // console.log(arbRes)
   }
 }
-async function watchPair (bitfinex, bittrex, pair) {
-  console.log(pair)
-  bitfinex.subscribeBook(pair)
-  const bitfinexBook = new Book()
-  bitfinex.on('bookUpdate', (pair, data) => {
-    bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[2] < 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
-    bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
-    bitfinexBook.updateLevels(sides.BID, data.filter(d => d[2] > 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
-    bitfinexBook.updateLevels(sides.BID, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
-  })
 
-  bittrex.subscribe([pair])
-  const bittrexBook = new Book()
-  bittrex.on('bookUpdate', (pair, data) => {
-    bittrexBook.updateLevels(sides.ASK, data.sell.map(d => [d.Rate, d.Quantity]))
-    bittrexBook.updateLevels(sides.BID, data.buy.map(d => [d.Rate, d.Quantity]))
-  })
+const bitfinexBooks = {}
+function onBitfinexBookUpdate (pair, data) {
+  const bitfinexBook = bitfinexBooks[pair.display]
+  bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[2] < 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
+  bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
+  bitfinexBook.updateLevels(sides.BID, data.filter(d => d[2] > 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
+  bitfinexBook.updateLevels(sides.BID, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
 
-  bitfinex.on('bookUpdate',
-    () => calc(bitfinexBook, bittrexBook, 'BITF', 'BTRX', pair)
-  )
-
-  bittrex.on('bookUpdate',
-    () => calc(bittrexBook, bitfinexBook, 'BTRX', 'BITF', pair)
-  )
+  const bittrexBook = bittrexBooks[pair.display]
+  calc(bittrexBook, bitfinexBook, 'BTRX', 'BITF', pair).then()
 }
+
+const bittrexBooks = {}
+function onBittrexBookUpdate (pair, data) {
+  const bittrexBook = bittrexBooks[pair.display]
+  bittrexBook.updateLevels(sides.ASK, data.sell.map(d => [d.Rate, d.Quantity]))
+  bittrexBook.updateLevels(sides.BID, data.buy.map(d => [d.Rate, d.Quantity]))
+
+  const bitfinexBook = bitfinexBooks[pair.display]
+  calc(bittrexBook, bitfinexBook, 'BTRX', 'BITF', pair).then()
+}
+
+
 async function main (config) {
   const bitfinex = new BitfinexApi()
-  const createNonceGenerator = require('./src/createNonceGenerator')
-  const nonceGen = createNonceGenerator()
-  bitfinexDriver.setKeys(config.BITF.key, config.BITF.secret, nonceGen)
+  // const createNonceGenerator = require('./src/createNonceGenerator')
+  // const nonceGen = createNonceGenerator()
+  // bitfinexDriver.setKeys(config.BITF.key, config.BITF.secret, nonceGen)
   const bittrex = new BittrexApi()
 
-  Object.keys(pairs).forEach(pair => watchPair(bitfinex, bittrex, pairs[pair]).then())
+  for (const k in pairs) {
+    bitfinexBooks[pairs[k].display] = new Book()
+    bitfinex.subscribeBook(pairs[k])
+  }
+  bitfinex.on('bookUpdate', onBitfinexBookUpdate)
+
+  for (const k in pairs) {
+    bittrexBooks[pairs[k].display] = new Book()
+  }
+  bittrex.subscribe(Object.keys(pairs).map(key => pairs[key]))
+  bittrex.on('bookUpdate', onBittrexBookUpdate)
 }
 const config = {
   BITF: {
