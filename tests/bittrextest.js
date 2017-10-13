@@ -9,8 +9,13 @@ async function placeAndCancelOrder () {
   console.log(order)
   // const executionStatus = await exec.waitForExec(order)
   // console.log(executionStatus)
-  const status = await exec.cancel(order)
-  console.log(status)
+
+  const orderStatus = await exec.orderStatus(order)
+  console.log(orderStatus)
+  console.log(orderStatus.resp)
+
+  const cancelStatus = await exec.cancel(order)
+  console.log(cancelStatus)
 }
 
 async function withdraw () {
@@ -18,7 +23,5 @@ async function withdraw () {
   console.log(status)
 }
 
-
-
-withdraw().then()
-//placeAndCancelOrder().then()
+//withdraw().then()
+placeAndCancelOrder().then()

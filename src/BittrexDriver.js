@@ -75,7 +75,14 @@ exports.cancel = async (order) => {
     return failed(e)
   }
 }
-
+exports.orderStatus = async (order) => {
+  const resp = await messageStatus(order.id)
+  if (!resp.ack) {
+    return resp
+  } else {
+    return ok({remains: resp.payload.result.QuantityRemaining, resp})
+  }
+}
 async function messageStatus (uuid) {
   try {
     const statusMsg = await req('account/getorder', {uuid})

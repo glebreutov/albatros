@@ -19,6 +19,18 @@ function profitTreshold (arbRes) {
   return arbRes.profit > 0
 }
 
+async function getRemainsAndCancel (order) {
+  const orderStatus = await exec.orderStatus(order)
+  if (!orderStatus.ack) {
+    return {ack: false, remains: orderStatus.remains}
+  } else {
+    if (orderStatus.remains > 0) {
+      exec.cancel(buyOrder)
+    }
+    return {ack: true, remains: orderStatus.remains}
+  }
+}
+
 async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sellWallet, buyWallet) {
   // getting loan btc for usdt on bitf.
   const pos = await exec.openShortPosition(sellExch, pair, size)
@@ -39,18 +51,21 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
     return false
   }
 
-  await Promise.race([
-    Promise.all([exec.waitForExec(sellOrder), exec.waitForExec(buyOrder)]),
-    sleep(4000)
-  ])
-
-  // if there something to cancel that s not ok
-  await exec.cancel(buyOrder)
-  await exec.cancel(sellOrder)
+  await sleep(10000)
+  const buyStatus = await getRemainsAndCancel(buyOrder)
+  if (!buyStatus.ack) {
+    console.log('can\'t get but order status ', buyStatus)
+    return false
+  }
+  const sellStatus = await getRemainsAndCancel(sellOrder)
+  if (!sellStatus.ack) {
+    console.log('can\'t get but order status ', sellStatus)
+    return false
+  }
 
   // transfer BTC from BTRX to BITF
   // todo: and wait for btc deposit at BITF
-  const transferStatus = await exec.transferFunds(buyExch, sellExch, pair.counter, buyWallet)
+  const transferStatus = await exec.transferFunds(buyExch, sellExch, size - buyStatus.remains, pair.counter, buyWallet)
   if (!transferStatus.ack) {
     console.error(`can't withdraw funds from ${buyExch} to ${sellExch} details: ${transferStatus}`)
     return false
@@ -64,7 +79,8 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   }
 
   // transfer usdt form bitf to btrx
-  const backtransferStatsu = await exec.transferFunds(sellExch, buyExch, pair.base, sellWallet)
+  const usdtSize = size * buyPrice - sellStatus.remains
+  const backtransferStatsu = await exec.transferFunds(sellExch, buyExch, usdtSize, pair.base, sellWallet)
   if (!backtransferStatsu.ack) {
     console.error(`can't withdraw funds from ${sellExch} to ${buyExch} details ${backtransferStatsu}`)
     return false
@@ -86,7 +102,6 @@ async function calc (book1, book2, exch1Name, exch2Name, pair) {
       // await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.volume, exch1Name, exch2Name, pair)
       console.log(new Date())
       console.log(arbRes)
-
     }
     // console.log(arbRes)
   }
@@ -113,7 +128,6 @@ function onBittrexBookUpdate (pair, data) {
   const bitfinexBook = bitfinexBooks[pair.display]
   calc(bittrexBook, bitfinexBook, 'BTRX', 'BITF', pair).then()
 }
-
 
 async function main (config) {
   const bitfinex = new BitfinexApi()

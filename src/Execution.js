@@ -69,7 +69,7 @@ const depositAwait = async (exch, assetId) => {
 }
 exports.depositAwait = depositAwait
 
-exports.transferFunds = async (from, to, assetId, toWallet) => {
+exports.transferFunds = async (from, to, amount, assetId, toWallet) => {
   const withdrawStatus = await withdraw(from, assetId, toWallet)
   if (!withdrawStatus.ack) {
     console.error(`can't withdraw funds ${withdrawStatus}`)
@@ -77,4 +77,8 @@ exports.transferFunds = async (from, to, assetId, toWallet) => {
   }
   await depositAwait(to, assetId)
   return {ack: true}
+}
+
+exports.orderStatus = async (order) => {
+  return getDriver(order.exch).orderStatus(order)
 }
