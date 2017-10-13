@@ -67,9 +67,18 @@ exports.newOrder = async (pair, price, size, side) => {
   return order
 }
 
-
 exports.cancel = async (order) => {
-  return api().cancelOrder(order.id)
+  try {
+    return {
+      response: await api().cancelOrder(order.id),
+      ack: true
+    }
+  } catch (e) {
+    return {
+      ack: false,
+      error: e
+    }
+  }
 }
 
 // controller: Promise
@@ -125,9 +134,35 @@ exports.withdraw = async (assetId, amount, wallet) => {
 }
 
 exports.balance = async (assetId) => {
-  return api().balance(assetId)
+  try {
+    return {
+      balance: await api().balance(assetId),
+      ack: true
+    }
+  } catch (e) {
+    return {
+      ack: false,
+      error: e
+    }
+  }
 }
 
 exports.depositAwait = async (assetId) => {
-  return constantFail
+  return fail('not implemented')
+}
+
+exports.orderStatus = async (order) => {
+  try {
+    const orderStatus = await api().getOrderStatus(order.id)
+    return {
+      ...orderStatus,
+      remains: parseFloat(orderStatus.remaining_amount),
+      ack: true
+    }
+  } catch (e) {
+    return {
+      ack: false,
+      error: e
+    }
+  }
 }
