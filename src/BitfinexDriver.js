@@ -2,7 +2,7 @@ const BitfinexRest = require('./BitfinexRest')
 const debug = require('debug')('BitfinexDriver')
 const {assert, sleep} = require('./tools')
 
-const constantFail = {ack: false}
+const fail = msg => ({ack: false, error: new Error(msg)})
 
 let apiInstance
 function api () {
@@ -14,7 +14,11 @@ exports.setKeys = (apiKey, apiSecret, nonceGenerator) => {
 }
 
 exports.openPosition = async (assetId, size, side) => {
-  return constantFail
+  return fail('function not supported')
+}
+
+exports.closePosition = async (pos) => {
+  return fail('function not supported')
 }
 
 exports.loan = async (assetId, size) => {
@@ -63,9 +67,6 @@ exports.newOrder = async (pair, price, size, side) => {
   return order
 }
 
-exports.closePosition = async (pos) => {
-  return constantFail
-}
 
 exports.cancel = async (order) => {
   return api().cancelOrder(order.id)
@@ -102,8 +103,25 @@ exports.waitForExec = async (order, controller) => {
   return result
 }
 
-exports.withdraw = async (assetId, wallet) => {
-  return constantFail
+exports.withdraw = async (assetId, amount, wallet) => {
+  try {
+    const status = await api().withdraw(assetId, amount, wallet)
+    if (status.status === 'success') {
+      return {
+        ack: true,
+        id: status.withdrawal_id
+      }
+    }
+    return {
+      ack: false,
+      error: new Error(`unknown error: \n${JSON.stringify(status, null, 2)}`)
+    }
+  } catch (e) {
+    return {
+      ack: false,
+      error: e
+    }
+  }
 }
 
 exports.balance = async (assetId) => {
@@ -111,9 +129,5 @@ exports.balance = async (assetId) => {
 }
 
 exports.depositAwait = async (assetId) => {
-  return constantFail
-}
-
-exports.transferFunds = async (from, to, assetId, toWallet) => {
   return constantFail
 }
