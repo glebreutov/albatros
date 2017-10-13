@@ -25,6 +25,14 @@ const sideConverter = createConverter([{
   specific: 'sell'
 }])
 
+const withdrawConverter = createConverter([{
+  normal: pairs.USDTBTC.counter,
+  specific: 'bitcoin'
+}, {
+  normal: pairs.USDTBTC.base,
+  specific: 'tether'
+}])
+
 class BitfinexRest {
   constructor (apiKey, apiSecret, nonceGenerator) {
     assert(apiKey, 'Missing api key')
@@ -39,6 +47,24 @@ class BitfinexRest {
 
   async getWallets () {
     return this.authRequest('balances')
+  }
+
+  async withdraw (assetId, amount, address) {
+    const params = {
+      withdraw_type: withdrawConverter.denormalize(assetId),
+      walletselected: 'exchange',
+      amount: amount.toString(),
+      address
+    }
+    return this.authRequest('withdraw', params)
+  }
+
+  async deposit (assetId) {
+    const params = {
+      method: withdrawConverter.denormalize(assetId),
+      wallet_name: 'exchange'
+    }
+    return this.authRequest('deposit/new', params)
   }
 
   async getOrderStatus (id) {

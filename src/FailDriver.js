@@ -32,7 +32,3 @@ exports.balance = async (assetId) => {
 exports.depositAwait = async (assetId) => {
   return constantFail
 }
-
-exports.transferFunds = async (from, to, assetId, toWallet) => {
-  return constantFail
-}

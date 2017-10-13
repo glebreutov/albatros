@@ -5,7 +5,7 @@
   "main": "run.js",
   "scripts": {
     "start": "node run-calc.js",
-    "test": "node bitfinex-test.js"
+    "test": "node tests/bitfinex-test.js"
   },
   "repository": {
     "type": "git",

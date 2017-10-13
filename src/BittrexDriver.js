@@ -12,7 +12,7 @@ exports.init = (key, secret) => {
 }
 
 function failed (error) {
-  return {ack: false, error}
+  return {ack: false, new Error(error)}
 }
 
 function ok (status) {
