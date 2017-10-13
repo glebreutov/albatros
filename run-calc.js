@@ -44,6 +44,7 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
     sleep(4000)
   ])
 
+  // if there something to cancel that s not ok
   await exec.cancel(buyOrder)
   await exec.cancel(sellOrder)
 

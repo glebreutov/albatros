@@ -34,7 +34,7 @@ async function newOrder (pair, price, size, side) {
     const strPair = pair.base + '-' + pair.counter
     const json = await req(urlSuffix, {market: strPair, quantity: size, rate: price})
     if (json.success) {
-      return ok({pair, id: json.result.uuid})
+      return ok({pair, id: json.result.uuid, exch: 'BTRX'})
     } else {
       return failed(json)
     }
@@ -42,7 +42,7 @@ async function newOrder (pair, price, size, side) {
     return failed(e)
   }
 }
-
+exports.newOrder = newOrder
 exports.openShortPosition = async (assetId, size) => {
   return openPosition(assetId, size, position.SHORT)
 }
@@ -65,7 +65,7 @@ exports.sell = async (pair, price, size) => {
 
 exports.cancel = async (order) => {
   try {
-    const cancelStatus = await req('market/cancel', {uuid: order})
+    const cancelStatus = await req('market/cancel', {uuid: order.id})
     if (cancelStatus.success) {
       return ok({})
     } else {
