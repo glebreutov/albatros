@@ -12,7 +12,7 @@ exports.init = (key, secret) => {
 }
 
 function failed (error) {
-  return {ack: false, new Error(error)}
+  return {ack: false, error}
 }
 
 function ok (status) {
@@ -30,6 +30,9 @@ async function openPosition (assetId, size, sides) {
 
 async function newOrder (pair, price, size, side) {
   try {
+    if (![sides.BID, sides.ASK].includes(side)) {
+      return failed('no margin trading on bittrex')
+    }
     const urlSuffix = (side === sides.ASK) ? 'market/selllimit' : 'market/buylimit'
     const strPair = pair.base + '-' + pair.counter
     const json = await req(urlSuffix, {market: strPair, quantity: size, rate: price})
