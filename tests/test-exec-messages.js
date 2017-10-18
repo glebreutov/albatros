@@ -13,6 +13,6 @@ function testOrderStatus (os) {
 console.log(testAny({ack: true}))
 console.log(testOrderStatus({ remains: 0.01,
   resp:
-    { ack: true,
-      payload: { success: true, message: '', result: [Object] } },
+  { ack: true,
+    payload: { success: true, message: '', result: [Object] } },
   ack: true }))

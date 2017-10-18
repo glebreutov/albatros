@@ -16,7 +16,9 @@ module.exports = {
   },
   sides: {
     ASK: 'ask',
-    BID: 'bid'
+    BID: 'bid',
+    LONG: 'long',
+    SHORT: 'short'
   },
   position: {
     SHORT: 'SHORT', LONG: 'LONG'

@@ -18,6 +18,16 @@ async function openPosition (exch, assetId, size, sides) {
   return getDriver(exch).openPosition(assetId, size, sides)
 }
 
+/**
+ * @typedef {Object} OrderStatus
+ * @property {boolean} ack
+ * @property {string} id
+ * @property {Object} pair
+ */
+
+/**
+ * @return OrderStatus
+ */
 async function newOrder (exch, pair, price, size, side) {
   return getDriver(exch).newOrder(pair, price, size, side)
 }
@@ -40,6 +50,14 @@ exports.buy = async (exch, pair, price, size) => {
 
 exports.sell = async (exch, pair, price, size) => {
   return newOrder(exch, pair, price, size, sides.ASK)
+}
+
+exports.long = async (exch, pair, price, size) => {
+  return newOrder(exch, pair, price, size, sides.LONG)
+}
+
+exports.short = async(exch, pair, price, size) => {
+  return newOrder(exch, pair, price, size, sides.SHORT)
 }
 
 exports.cancel = async (order) => {
