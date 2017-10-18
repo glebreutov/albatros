@@ -16,8 +16,7 @@ function failed (error) {
 }
 
 function ok (status) {
-  status['ack'] = true
-  return status
+  return {...status, ack: true}
 }
 
 function status (ack, payload) {

@@ -21,7 +21,15 @@ async function start () {
   debug('Starting test')
 
   let orders = await restApi.getActiveOrders()
-  assert(orders.length === 0, 'There should be no orders at this point. WARNING: all orders will be cancelled now')
+  // assert(orders.length === 0, 'There should be no orders at this point. WARNING: all orders will be cancelled now')
+
+  const ws = await restApi.getWallets()
+  // rate limit?
+  // const hs = await restApi.history()
+  // const t2 = await restApi.newOrder(pairs.USDTBTC, 5400, 0.005, sides.SHORT)
+  const r = await restApi.positions()
+  // const b = await restApi.claimPosition(37553441, 0.005)
+  process.exit(666)
 
   // const wallet = _.find(await restApi.getWallets(), {'type': 'exchange', 'currency': 'btc'})
   // const availableBtc = wallet && parseFloat(wallet['available'])
@@ -32,15 +40,15 @@ async function start () {
   // const tooHighPrice = _.max(book.bids.map(order => parseFloat(order.price))) + 1000
   //
   // debug('Next test should fail due to low btc balance')
-  // let order = await drv1.newOrder(pairs.USDTBTC, tooHighPrice, 200, sides.ASK)
-  // assert(order, 'newOrder() should return an order even when failed')
-  // assert(!order.ack, 'newOrder() sell 200 btc should fail')
+  // let order = await drv1.sell(pairs.USDTBTC, tooHighPrice, 200)
+  // assert(order, 'sell() should return an order even when failed')
+  // assert(!order.ack, 'sell() sell 200 btc should fail')
   //
   // debug('Next test should place an order with a price too high to execute')
-  // order = await drv1.newOrder(pairs.USDTBTC, tooHighPrice, 0.005, sides.ASK)
-  // assert(order.ack && order.id, `newOrder() should place an order of 0.005 btc at ${tooHighPrice} usd`)
+  // order = await drv1.sell(pairs.USDTBTC, tooHighPrice, 0.005)
+  // assert(order.ack && order.id, `sell() should place an order of 0.005 btc at ${tooHighPrice} usd`)
   // orders = await restApi.getActiveOrders()
-  // assert(orders.length, `newOrder() should place an order of 0.005 btc at ${tooHighPrice} usd`)
+  // assert(orders.length, `sell() should place an order of 0.005 btc at ${tooHighPrice} usd`)
   //
   // debug('Next test should wait 2 seconds for order to execute and continue with live order')
   // const r1 = await drv1.waitForExec(order, sleep(2000, false))
