@@ -17,7 +17,7 @@ exports.openPosition = async (assetId, size, side) => {
   return fail('function not supported')
 }
 
-exports.closePosition = async (pos) => {
+exports.closePositions = async () => {
   return fail('function not supported')
 }
 

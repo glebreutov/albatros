@@ -54,7 +54,7 @@ exports.openLongPosition = async (assetId, size) => {
   return openPosition(assetId, size, position.LONG)
 }
 
-exports.closePosition = async (pos) => {
+exports.closePositions = async (pos) => {
   return failed('not supported')
 }
 
@@ -108,9 +108,9 @@ exports.waitForExec = async (order) => {
   }
 }
 
-const withdraw = async (currency, quantity, address) => {
+const withdraw = async (assetId, amount, wallet) => {
   try {
-    const statusMsg = await req('account/withdraw', {currency, quantity, address})
+    const statusMsg = await req('account/withdraw', {assetId, amount, wallet})
     return status(statusMsg.success, statusMsg)
   } catch (e) {
     return failed(e)

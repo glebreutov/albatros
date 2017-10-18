@@ -1,5 +1,5 @@
 const {position, sides} = require('./const')
-
+const sleep = require('./tools').sleep
 const drivers = {}
 
 exports.registerDriver = (code, driver) => {
@@ -40,8 +40,8 @@ exports.openLongPosition = async (exch, assetId, size) => {
   return openPosition(exch, assetId, size, position.LONG)
 }
 
-exports.closePosition = async (pos) => {
-  return getDriver(pos.exch).closePosition(pos)
+exports.closePositions = async (pos) => {
+  return getDriver(pos.exch).closePositions()
 }
 
 exports.buy = async (exch, pair, price, size) => {
@@ -68,8 +68,8 @@ exports.waitForExec = async (order) => {
   return getDriver(order.exch).waitForExec(order)
 }
 
-const withdraw = async (exch, assetId, wallet) => {
-  return getDriver(exch).withdraw(assetId, wallet)
+const withdraw = async (exch, assetId, amount, wallet) => {
+  return getDriver(exch).withdraw(assetId, amount, wallet)
 }
 exports.withdraw = withdraw
 
@@ -78,22 +78,19 @@ async function balance (exch, assetId) {
 }
 exports.balance = balance
 
-const depositAwait = async (exch, assetId) => {
-  const was = await balance(exch, assetId)
-  while (was === await balance(exch, assetId)) {
-    await new Promise((resolve) => setTimeout(resolve, 5000, 'one'))
-  }
-  return true
-}
-exports.depositAwait = depositAwait
-
 exports.transferFunds = async (from, to, amount, assetId, toWallet) => {
-  const withdrawStatus = await withdraw(from, assetId, toWallet)
-  if (!withdrawStatus.ack) {
-    console.error(`can't withdraw funds ${withdrawStatus}`)
-    return {ack: false}
+  const targetBalance = await balance(to, assetId)
+  if (targetBalance.ack) {
+    return targetBalance
   }
-  await depositAwait(to, assetId)
+  const withdrawStatus = await withdraw(from, assetId, amount, toWallet)
+  if (!withdrawStatus.ack) {
+    return withdrawStatus
+  }
+
+  while (targetBalance.balance !== await balance(to, assetId)){
+    await sleep(10000)
+  }
   return {ack: true}
 }
 

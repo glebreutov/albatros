@@ -32,12 +32,6 @@ async function getRemainsAndCancel (order) {
 }
 
 async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sellWallet, buyWallet) {
-  // getting loan btc for usdt on bitf.
-  const pos = await exec.openShortPosition(sellExch, pair, size)
-  if (!pos.ack) {
-    console.error(`can't open position ${pos}`)
-    return false
-  }
   // buy btc on btrx
   const buyOrder = await exec.buy(buyExch, pair, buyPrice, size)
   if (!buyOrder.ack) {
@@ -45,7 +39,7 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
     return false
   }
   // sell loaned btc on bitf. price lock!
-  const sellOrder = await exec.sell(sellExch, sellPrice, size)
+  const sellOrder = await exec.short(sellExch, sellPrice, size)
   if (!sellOrder.ack) {
     console.error(`can't sell ${sellOrder}`)
     return false
@@ -72,7 +66,7 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   }
 
   // return loan on BITF
-  const posClosed = await exec.closePosition(sellExch, pos)
+  const posClosed = await exec.closePositions(sellExch)
   if (!posClosed.ack) {
     console.error(`unable to close position ${posClosed}`)
     return false

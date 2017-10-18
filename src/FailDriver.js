@@ -9,7 +9,7 @@ exports.newOrder = async (pair, price, size, sides) => {
   return constantFail
 }
 
-exports.closePosition = async (pos) => {
+exports.closePositions = async (pos) => {
   return constantFail
 }
 
