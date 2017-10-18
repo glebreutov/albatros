@@ -1,6 +1,7 @@
 const BitfinexRest = require('./BitfinexRest')
 const debug = require('debug')('BitfinexDriver')
 const {assert, sleep} = require('./tools')
+const {sides} = require('./const')
 
 const fail = msg => ({ack: false, error: new Error(msg)})
 
@@ -81,37 +82,6 @@ exports.cancel = async (order) => {
   }
 }
 
-// controller: Promise
-exports.waitForExec = async (order, controller) => {
-  if (!order.id) {
-    throw new Error('order.id is not valid')
-  }
-
-  async function request (loopBreaker) {
-    while (true) {
-      if (!loopBreaker.continue) { break }
-      await sleep(500)
-      if (!loopBreaker.continue) { break }
-      debug('requesting order status')
-      const newOrderStatus = await api().getOrderStatus(order.id)
-      if (!newOrderStatus.is_live) {
-        return newOrderStatus
-      }
-    }
-    debug('loop breaked')
-  }
-
-  const c = {continue: true}
-  const result = await Promise.race([
-    request(c),
-    controller
-  ])
-  // break the loop
-  debug('breaking the loop')
-  c.continue = false
-  return result
-}
-
 exports.withdraw = async (assetId, amount, wallet) => {
   try {
     const status = await api().withdraw(assetId, amount, wallet)
@@ -136,7 +106,9 @@ exports.withdraw = async (assetId, amount, wallet) => {
 exports.balance = async (assetId) => {
   try {
     return {
-      balance: await api().balance(assetId),
+      balance: (await api().getWallets())
+        .filter(w => w.currency === assetId)
+        .reduce((acc, next) => acc + parseFloat(next.amount), 0),
       ack: true
     }
   } catch (e) {
@@ -148,7 +120,13 @@ exports.balance = async (assetId) => {
 }
 
 exports.depositAwait = async (assetId) => {
-  return fail('not implemented')
+  let newBalance
+  const initial = (await exports.balance(assetId)).balance
+  do {
+    await sleep(1000)
+    newBalance = (await exports.balance(assetId)).balance
+  } while (initial <= newBalance)
+  return newBalance
 }
 
 exports.orderStatus = async (order) => {

@@ -23,7 +23,17 @@ const sideConverter = createConverter([{
 }, {
   normal: sides.ASK,
   specific: 'sell'
+}, {
+  normal: sides.LONG,
+  specific: 'buy'
+}, {
+  normal: sides.SHORT,
+  specific: 'sell'
 }])
+
+function getOrderType (side) {
+  return [sides.SHORT, sides.LONG].includes(side) ? 'limit' : 'exchange limit'
+}
 
 const withdrawConverter = createConverter([{
   normal: pairs.USDTBTC.counter,
@@ -46,23 +56,34 @@ class BitfinexRest {
   }
 
   async getWallets () {
-    return this.authRequest('balances')
+    return (await this.authRequest('balances')).map(w => ({...w, currency: assetConverter.normalize(w.currency)}))
   }
 
-  async withdraw (assetId, amount, address) {
+  async withdraw (assetId, amount, address, fromWallet = 'exchange') {
     const params = {
       withdraw_type: withdrawConverter.denormalize(assetId),
-      walletselected: 'exchange',
+      walletselected: fromWallet,
       amount: amount.toString(),
       address
     }
     return this.authRequest('withdraw', params)
   }
 
-  async deposit (assetId) {
+  // // BROKEN AT API SIDE: BTC cannot be used for Margin Trading. Transfer to Margin wallet not possible.
+  // async transfer (amount, currency, from, to) {
+  //   const params = {
+  //     amount: amount.toString(),
+  //     currency: assetConverter.denormalize(currency),
+  //     walletfrom: from,
+  //     walletto: to
+  //   }
+  //   return this.authRequest('transfer', params)
+  // }
+
+  async deposit (assetId, toWallet = 'exchange') {
     const params = {
       method: withdrawConverter.denormalize(assetId),
-      wallet_name: 'exchange'
+      wallet_name: toWallet
     }
     return this.authRequest('deposit/new', params)
   }
@@ -89,6 +110,14 @@ class BitfinexRest {
     return this.authRequest('positions')
   }
 
+  async claimPosition (id, amount) {
+    const params = {
+      position_id: parseInt(id),
+      amount: amount.toString()
+    }
+    return this.authRequest('position/claim', params)
+  }
+
   async loan (assetId, size) {
     const params = {
       currency: assetConverter.denormalize(assetId),
@@ -104,14 +133,18 @@ class BitfinexRest {
     return this.authRequest('credits')
   }
 
-  async newOrder (pair, price, size, side) {
+  async history () {
+    return this.authRequest('orders/hist')
+  }
+
+  async newOrder (pair, price, size, side, type) {
     const params = {
       symbol: pairConverter.denormalize(pair),
       amount: size.toString(),
       price: price.toString(),
       exchange: 'bitfinex',
       side: sideConverter.denormalize(side),
-      type: 'exchange limit',
+      type: type || getOrderType(side) || 'exchange limit',
       post_only: false,
       is_hidden: false
     }
