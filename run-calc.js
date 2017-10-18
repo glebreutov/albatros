@@ -32,6 +32,8 @@ async function getRemainsAndCancel (order) {
 }
 
 async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sellWallet, buyWallet) {
+  console.log('input', buyPrice, sellPrice, size, buyExch, sellExch, pair, sellWallet, buyWallet)
+  console.log('buying', buyExch, pair, buyPrice, size)
   // buy btc on btrx
   const buyOrder = await exec.buy(buyExch, pair, buyPrice, size)
   if (!buyOrder.ack) {
@@ -39,6 +41,7 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
     return false
   }
   // sell loaned btc on bitf. price lock!
+  console.log('shorting', sellExch, sellPrice, size)
   const sellOrder = await exec.short(sellExch, sellPrice, size)
   if (!sellOrder.ack) {
     console.error(`can't short ${sellOrder}`)
@@ -46,20 +49,24 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   }
 
   await sleep(10000)
-
+  console.log('check remaining', buyOrder)
   const buyStatus = await getRemainsAndCancel(buyOrder)
+  console.log('check remaining', buyStatus)
   if (!buyStatus.ack) {
     console.log('can\'t get but order status ', buyStatus)
     return false
   }
+  console.log('check remaining', sellOrder)
   const sellStatus = await getRemainsAndCancel(sellOrder)
   if (!sellStatus.ack) {
     console.log('can\'t get but order status ', sellStatus)
     return false
   }
+  console.log('check remaining', sellStatus)
 
   // transfer BTC from BTRX to BITF
   // todo: and wait for btc deposit at BITF
+  console.log('transfering funds', buyExch, sellExch, size - buyStatus.remains, pair.counter, buyWallet)
   const transferStatus = await exec.transferFunds(buyExch, sellExch, size - buyStatus.remains, pair.counter, buyWallet)
   if (!transferStatus.ack) {
     console.error(`can't withdraw funds from ${buyExch} to ${sellExch} details: ${transferStatus}`)
@@ -67,6 +74,7 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   }
 
   // return loan on BITF
+  console.log('closing position', sellExch)
   const posClosed = await exec.closePositions(sellExch)
   if (!posClosed.ack) {
     console.error(`unable to close position ${posClosed}`)
@@ -74,13 +82,15 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   }
 
   // transfer usdt form bitf to btrx
+  // consider using 3.3x rule
   const usdtSize = size * buyPrice - sellStatus.remains
+  console.log('backtransferring funds ', sellExch, buyExch, usdtSize, pair.base, sellWallet)
   const backtransferStatsu = await exec.transferFunds(sellExch, buyExch, usdtSize, pair.base, sellWallet)
   if (!backtransferStatsu.ack) {
     console.error(`can't withdraw funds from ${sellExch} to ${buyExch} details ${backtransferStatsu}`)
     return false
   }
-
+  console.log('looks ok')
   return true
 }
 
