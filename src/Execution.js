@@ -14,10 +14,6 @@ function getDriver (code) {
   }
 }
 
-async function openPosition (exch, assetId, size, sides) {
-  return getDriver(exch).openPosition(assetId, size, sides)
-}
-
 /**
  * @typedef {Object} OrderStatus
  * @property {boolean} ack
@@ -30,14 +26,6 @@ async function openPosition (exch, assetId, size, sides) {
  */
 async function newOrder (exch, pair, price, size, side) {
   return getDriver(exch).newOrder(pair, price, size, side)
-}
-
-exports.openShortPosition = async (exch, assetId, size) => {
-  return openPosition(exch, assetId, size, position.SHORT)
-}
-
-exports.openLongPosition = async (exch, assetId, size) => {
-  return openPosition(exch, assetId, size, position.LONG)
 }
 
 exports.closePositions = async (pos) => {
@@ -62,10 +50,6 @@ exports.short = async(exch, pair, price, size) => {
 
 exports.cancel = async (order) => {
   return getDriver(order.exch).cancel(order)
-}
-
-exports.waitForExec = async (order) => {
-  return getDriver(order.exch).waitForExec(order)
 }
 
 const withdraw = async (exch, assetId, amount, wallet) => {

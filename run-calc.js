@@ -41,11 +41,12 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   // sell loaned btc on bitf. price lock!
   const sellOrder = await exec.short(sellExch, sellPrice, size)
   if (!sellOrder.ack) {
-    console.error(`can't sell ${sellOrder}`)
+    console.error(`can't short ${sellOrder}`)
     return false
   }
 
   await sleep(10000)
+
   const buyStatus = await getRemainsAndCancel(buyOrder)
   if (!buyStatus.ack) {
     console.log('can\'t get but order status ', buyStatus)
