@@ -6,7 +6,7 @@ const sleep = require('./tools').sleep
 let apiKey = '6fcaa371b3964427b214852323518634'
 let apiSecret = '54138e62efca4c1790ab9c0bff2c196a'
 
-exports.init = (key, secret) => {
+exports.setKeys = (key, secret) => {
   apiKey = key
   apiSecret = secret
 }

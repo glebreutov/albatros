@@ -42,7 +42,7 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   }
   // sell loaned btc on bitf. price lock!
   console.log('shorting', sellExch, sellPrice, size)
-  const sellOrder = await exec.short(sellExch, sellPrice, size)
+  const sellOrder = await exec.short(sellExch, pair, sellPrice, size)
   if (!sellOrder.ack) {
     console.error('can\'t short', sellOrder)
     return false
@@ -137,6 +137,20 @@ function onBittrexBookUpdate (pair, data) {
 }
 
 async function main (config) {
+  const config = {
+    BITF: {
+      key: process.env.BITF.split(':')[0],
+      secret: process.env.BITF.split(':')[1]
+    },
+    BTRX: {
+      key: process.env.BTRX.split(':')[0],
+      secret: process.env.BTRX.split(':')[1]
+    },
+    pair: pairs[process.env.PAIR]
+  }
+
+  console.log(config)
+
   const bitfinex = new BitfinexApi()
   // const createNonceGenerator = require('./src/createNonceGenerator')
   // const nonceGen = createNonceGenerator()
@@ -155,18 +169,8 @@ async function main (config) {
   bittrex.subscribe(Object.keys(pairs).map(key => pairs[key]))
   bittrex.on('bookUpdate', onBittrexBookUpdate)
 }
-const config = {
-  BITF: {
-    key: process.env.BITF.split(':')[0],
-    secret: process.env.BITF.split(':')[1]
-  },
-  BTRX: {
-    key: process.env.BTRX.split(':')[0],
-    secret: process.env.BTRX.split(':')[1]
-  },
-  pair: pairs[process.env.PAIR]
-}
 
-console.log(config)
 
-main(config).then()
+//main(config).then()
+
+exports.syncExec = syncExec
