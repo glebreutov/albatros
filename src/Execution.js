@@ -21,8 +21,8 @@ async function newOrder (exch, pair, price, size, side) {
   return getDriver(exch).newOrder(pair, price, size, side)
 }
 
-exports.closePositions = async (pos) => {
-  return getDriver(pos.exch).closePositions()
+exports.closePositions = async (exch) => {
+  return getDriver(exch).closePositions()
 }
 
 exports.buy = async (exch, pair, price, size) => {

@@ -23,4 +23,11 @@ const nonceGen = createNonceGenerator()
 bitfinexDriver.setKeys(config.BITF.key, config.BITF.secret, nonceGen)
 bittrexDriver.setKeys(config.BTRX.key, config.BTRX.secret)
 
-syncExec(5710, 5699, 0.01, exchanges.BITTREX, exchanges.BITFINEX, pairs.USDTBTC, '1BhEFhyZSfjXyQE77NvV3bSVNG8JChKhio', '1AW9uvGn6nFPsaAkZNnRGXkSLJXGK62wPG').then()
+//syncExec(5678, 5666, 0.005, 'BTRX', 'BITF', pairs.USDTBTC, '1BhEFhyZSfjXyQE77NvV3bSVNG8JChKhio', '1AW9uvGn6nFPsaAkZNnRGXkSLJXGK62wPG').then()
+
+async function test () {
+  const newVar = await exec.closePositions('BITF')
+  console.log(newVar)
+}
+
+test().then()

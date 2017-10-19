@@ -36,17 +36,17 @@ async function getRemainsAndCancel (order) {
 async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sellWallet, buyWallet) {
   console.log('input', buyPrice, sellPrice, size, buyExch, sellExch, pair, sellWallet, buyWallet)
   console.log('buying', buyExch, pair, buyPrice, size)
-  // buy btc on btrx
-  const buyOrder = await exec.buy(buyExch, pair, buyPrice, size)
-  if (!buyOrder.ack) {
-    console.error('can\'t buy', buyOrder)
-    return false
-  }
   // sell loaned btc on bitf. price lock!
   console.log('shorting', sellExch, sellPrice, size)
   const sellOrder = await exec.short(sellExch, pair, sellPrice, size)
   if (!sellOrder.ack) {
     console.error('can\'t short', sellOrder)
+    return false
+  }
+  // buy btc on btrx
+  const buyOrder = await exec.buy(buyExch, pair, buyPrice, size)
+  if (!buyOrder.ack) {
+    console.error('can\'t buy', buyOrder)
     return false
   }
 
@@ -60,11 +60,11 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   }
   console.log('check remaining', sellOrder)
   const sellStatus = await getRemainsAndCancel(sellOrder)
+  console.log('check remaining', sellStatus)
   if (!sellStatus.ack) {
     console.log('can\'t get but order status ', sellStatus)
     return false
   }
-  console.log('check remaining', sellStatus)
 
   // transfer BTC from BTRX to BITF
   // todo: and wait for btc deposit at BITF
