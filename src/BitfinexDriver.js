@@ -29,6 +29,7 @@ exports.newOrder = async (pair, price, size, side) => {
       return {
         ...order,
         ack: true,
+        error: null,
         id: order.response.id.toString(),
         remains: order.response.remaining_amount && parseFloat(order.response.remaining_amount)
       }
