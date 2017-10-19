@@ -22,7 +22,7 @@ function profitTreshold (arbRes) {
 async function getRemainsAndCancel (order) {
   const orderStatus = await exec.orderStatus(order)
   if (!orderStatus.ack) {
-    return {ack: false, remains: orderStatus.remains}
+    return {ack: false, resp: orderStatus}
   } else {
     if (orderStatus.remains > 0) {
       await exec.cancel(order)
