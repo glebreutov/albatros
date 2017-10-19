@@ -29,7 +29,6 @@ async function start () {
   // const t2 = await restApi.newOrder(pairs.USDTBTC, 5400, 0.005, sides.SHORT)
   const r = await restApi.positions()
   // const b = await restApi.claimPosition(37553441, 0.005)
-  process.exit(666)
 
   // const wallet = _.find(await restApi.getWallets(), {'type': 'exchange', 'currency': 'btc'})
   // const availableBtc = wallet && parseFloat(wallet['available'])

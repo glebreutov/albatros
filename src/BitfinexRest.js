@@ -115,7 +115,10 @@ class BitfinexRest {
       position_id: parseInt(id),
       amount: amount.toString()
     }
-    return this.authRequest('position/claim', params)
+    const response = await this.authRequest('position/claim', params)
+    if (!response.id) {
+      throw new Error(`Can't claim position ${id}:\n${JSON.stringify(response, null, 2)}`)
+    }
   }
 
   async loan (assetId, size) {

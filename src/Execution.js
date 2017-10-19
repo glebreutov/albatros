@@ -1,5 +1,5 @@
-const {position, sides} = require('./const')
-const sleep = require('./tools').sleep
+const {sides} = require('./const')
+const {sleep} = require('./tools')
 const drivers = {}
 
 exports.registerDriver = (code, driver) => {
@@ -14,12 +14,6 @@ function getDriver (code) {
   }
 }
 
-/**
- * @typedef {Object} OrderStatus
- * @property {boolean} ack
- * @property {string} id
- * @property {Object} pair
- */
 
 /**
  * @return OrderStatus

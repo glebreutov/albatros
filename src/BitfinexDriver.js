@@ -1,9 +1,6 @@
 const BitfinexRest = require('./BitfinexRest')
 const debug = require('debug')('BitfinexDriver')
-const {assert, sleep} = require('./tools')
-const {sides} = require('./const')
-
-const fail = msg => ({ack: false, error: new Error(msg)})
+const {assert} = require('./tools')
 
 let apiInstance
 function api () {
@@ -14,63 +11,43 @@ exports.setKeys = (apiKey, apiSecret, nonceGenerator) => {
   apiInstance = new BitfinexRest(apiKey, apiSecret, nonceGenerator)
 }
 
-exports.openPosition = async (assetId, size, side) => {
-  return fail('function not supported')
-}
-
-exports.closePositions = async () => {
-  return fail('function not supported')
-}
-
-exports.loan = async (assetId, size) => {
-  let order
-  try {
-    order = await api().loan(assetId, size)
-  } catch (e) {
-    debug('ERROR: could not loan: ', e)
-    order = {
-      ack: false,
-      error: e
-    }
-  }
-
-  if (order.id) {
-    order.ack = true
-    return order
-  }
-  order.ack = false
-  if (!order.error) {
-    order.error = 'unknown'
-  }
-  return order
-}
-
+/**
+ * Place new Order
+ * @param {Pair} pair
+ * @param {number} price
+ * @param {number} size
+ * @param {Side} side
+ * @return {Promise.<OrderStatus>}
+ */
 exports.newOrder = async (pair, price, size, side) => {
-  let order
+  /** @type OrderStatus */
+  const order = {ack: false, error: new Error('Unknown error')}
   try {
-    order = await api().newOrder(pair, price, size, side)
-  } catch (e) {
-    debug('ERROR: could not place order: ', e)
-    order = {
-      ack: false,
-      error: e
+    order.response = await api().newOrder(pair, price, size, side)
+    // todo: move this condition to BitfinexRest
+    if (order.response.id) {
+      return {
+        ...order,
+        ack: true,
+        id: order.response.id.toString(),
+        remains: order.response.remaining_amount && parseFloat(order.response.remaining_amount)
+      }
     }
-  }
-
-  if (order.id) {
-    order.ack = true
-    return order
-  }
-  order.ack = false
-  if (!order.error) {
-    order.error = new Error('Unknown error')
+  } catch (e) {
+    order.error = e
   }
   return order
 }
 
+/**
+ * Cancel order
+ * @param {OrderStatus} order
+ * @return {Promise.<DriverResponse>}
+ */
 exports.cancel = async (order) => {
   try {
     return {
+      ...order,
       response: await api().cancelOrder(order.id),
       ack: true
     }
@@ -82,18 +59,27 @@ exports.cancel = async (order) => {
   }
 }
 
+/**
+ * Withdraw funds to the specified wallet
+ * @param {AssetId} assetId
+ * @param {number} amount
+ * @param {CryptoWallet} wallet
+ * @return {Promise.<DriverResponse>}
+ */
 exports.withdraw = async (assetId, amount, wallet) => {
   try {
     const status = await api().withdraw(assetId, amount, wallet)
+    // todo: move this condition to BitfinexRest
     if (status.status === 'success') {
       return {
         ack: true,
-        id: status.withdrawal_id
+        response: status
       }
     }
     return {
       ack: false,
-      error: new Error(`unknown error: \n${JSON.stringify(status, null, 2)}`)
+      response: status,
+      error: new Error('Unknown error')
     }
   } catch (e) {
     return {
@@ -103,6 +89,11 @@ exports.withdraw = async (assetId, amount, wallet) => {
   }
 }
 
+/**
+ * Get account balance in specified currency
+ * @param {AssetId} assetId
+ * @return {Promise.<BalanceStatus>}
+ */
 exports.balance = async (assetId) => {
   try {
     return {
@@ -119,27 +110,49 @@ exports.balance = async (assetId) => {
   }
 }
 
-exports.depositAwait = async (assetId) => {
-  let newBalance
-  const initial = (await exports.balance(assetId)).balance
-  do {
-    await sleep(1000)
-    newBalance = (await exports.balance(assetId)).balance
-  } while (initial <= newBalance)
-  return newBalance
-}
-
+/**
+ * Get order status
+ * @param {OrderStatus} order
+ * @return {Promise.<OrderStatus>}
+ */
 exports.orderStatus = async (order) => {
   try {
     const orderStatus = await api().getOrderStatus(order.id)
     return {
-      ...orderStatus,
-      remains: parseFloat(orderStatus.remaining_amount),
+      ...order,
+      response: orderStatus,
+      remains: orderStatus.remaining_amount && parseFloat(orderStatus.remaining_amount),
       ack: true
     }
   } catch (e) {
     return {
       ack: false,
+      error: e
+    }
+  }
+}
+
+/**
+ * Try to close all active positions
+ * @return {Promise.<void>}
+ */
+exports.closePositions = async () => {
+  let responses
+  try {
+    const positions = await api().positions()
+    responses = positions
+    for (let i = 0; i < positions.length; i++) {
+      let position = positions[i]
+      responses.push(await api().claimPosition(position.id, Math.abs(parseFloat(position.amount))))
+    }
+    return {
+      ack: true,
+      response: responses
+    }
+  } catch (e) {
+    return {
+      ack: false,
+      response: responses,
       error: e
     }
   }

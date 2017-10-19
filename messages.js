@@ -1,40 +1,36 @@
-const positionOk = {
-  ack: true,
-  error: {...}
-}
+/**
+ * @typedef {Object} DriverResponse
+ * @property {boolean} ack
+ * @property {Object|string} [error]
+ * @property {Object} [response] - api response for debug purposes
+ */
 
-const newOrder = {
-  ack: true,
-  id: '4534ercs',
-  pair : {base: 'USDT', counter: 'BTC'},
-  error: {...}
-}
+/**
+ * @typedef {Object} Pair
+ * @property {string} base
+ * @property {string} counter
+ * @property {string} display
+ */
 
-const waitForExec = {
-  ack: true,
-  error: {...}
-}
+/**
+ * @typedef {DriverResponse} OrderStatus
+ * @property {string} [id]
+ * @property {number} [remains]
+ */
 
-const cancel = {
-  ack: true,
-  error: {...}
-}
+/**
+ * @typedef {DriverResponse} BalanceStatus
+ * @property {number} balance
+ */
 
-const transferFunds = {
-  ack: true,
-  error: {...}
-}
+/**
+ * @typedef {string} Side
+ */
 
-const closePos = {
-  ack: true,
-  error: {...}
-}
+/**
+ * @typedef {string} AssetId
+ */
 
-const transferStatus = {
-  ack: true,
-  beforeSrc: 10,
-  afterSrc: 1000,
-  beforeTgt: 10,
-  afterTgt: 1000,
-  error: {...}
-}
+/**
+ * @typedef {string} CryptoWallet
+ */
