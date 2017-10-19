@@ -1,6 +1,7 @@
 const BitfinexRest = require('./BitfinexRest')
 const debug = require('debug')('BitfinexDriver')
 const {assert} = require('./tools')
+const {exchanges} = require('./const')
 
 let apiInstance
 function api () {
@@ -21,7 +22,7 @@ exports.setKeys = (apiKey, apiSecret, nonceGenerator) => {
  */
 exports.newOrder = async (pair, price, size, side) => {
   /** @type OrderStatus */
-  const order = {ack: false, error: new Error('Unknown error')}
+  const order = {ack: false, error: new Error('Unknown error'), exch: exchanges.BITFINEX}
   try {
     order.response = await api().newOrder(pair, price, size, side)
     // todo: move this condition to BitfinexRest
@@ -54,6 +55,7 @@ exports.cancel = async (order) => {
     }
   } catch (e) {
     return {
+      exch: exchanges.BITFINEX,
       ack: false,
       error: e
     }
@@ -74,17 +76,20 @@ exports.withdraw = async (assetId, amount, wallet) => {
     if (status.status === 'success') {
       return {
         ack: true,
+        exch: exchanges.BITFINEX,
         response: status
       }
     }
     return {
       ack: false,
+      exch: exchanges.BITFINEX,
       response: status,
       error: new Error('Unknown error')
     }
   } catch (e) {
     return {
       ack: false,
+      exch: exchanges.BITFINEX,
       error: e
     }
   }
@@ -101,11 +106,13 @@ exports.balance = async (assetId) => {
       balance: (await api().getWallets())
         .filter(w => w.currency === assetId)
         .reduce((acc, next) => acc + parseFloat(next.amount), 0),
-      ack: true
+      ack: true,
+      exch: exchanges.BITFINEX
     }
   } catch (e) {
     return {
       ack: false,
+      exch: exchanges.BITFINEX,
       error: e
     }
   }
@@ -128,6 +135,7 @@ exports.orderStatus = async (order) => {
   } catch (e) {
     return {
       ack: false,
+      exch: exchanges.BITFINEX,
       error: e
     }
   }
@@ -148,11 +156,13 @@ exports.closePositions = async () => {
     }
     return {
       ack: true,
+      exch: exchanges.BITFINEX,
       response: responses
     }
   } catch (e) {
     return {
       ack: false,
+      exch: exchanges.BITFINEX,
       response: responses,
       error: e
     }

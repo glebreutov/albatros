@@ -2,7 +2,7 @@ const BitfinexApi = require('./src/BitfinexWS')
 const bitfinexDriver = require('./src/BitfinexDriver')
 
 const BittrexApi = require('./src/Bittrex')
-const {pairs, sides} = require('./src/const')
+const {pairs, sides, exchanges} = require('./src/const')
 const _ = require('lodash')
 const Book = require('./src/Book')
 const calculate = require('./calc/arb_calc').calculate
@@ -125,7 +125,7 @@ function onBitfinexBookUpdate (pair, data) {
   bitfinexBook.updateLevels(sides.BID, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
 
   const bittrexBook = bittrexBooks[pair.display]
-  calc(bittrexBook, bitfinexBook, 'BTRX', 'BITF', pair).then()
+  calc(bittrexBook, bitfinexBook, exchanges.BITTREX, exchanges.BITFINEX, pair).then()
 }
 
 const bittrexBooks = {}
@@ -135,7 +135,7 @@ function onBittrexBookUpdate (pair, data) {
   bittrexBook.updateLevels(sides.BID, data.buy.map(d => [d.Rate, d.Quantity]))
 
   const bitfinexBook = bitfinexBooks[pair.display]
-  calc(bittrexBook, bitfinexBook, 'BTRX', 'BITF', pair).then()
+  calc(bittrexBook, bitfinexBook, exchanges.BITTREX, exchanges.BITFINEX, pair).then()
 }
 
 function parseConfig () {
@@ -163,8 +163,8 @@ async function main () {
   // bitfinexDriver.setKeys(config.BITF.key, config.BITF.secret, nonceGen)
   const bittrex = new BittrexApi()
 
-  exec.registerDriver('BTRX', bittrexDriver)
-  exec.registerDriver('BITF', bitfinexDriver)
+  exec.registerDriver(exchanges.BITTREX, bittrexDriver)
+  exec.registerDriver(exchanges.BITFINEX, bitfinexDriver)
   const nonceGen = createNonceGenerator()
   bitfinexDriver.setKeys(config.BITF.key, config.BITF.secret, nonceGen)
   bittrexDriver.setKeys(config.BTRX.key, config.BTRX.secret)

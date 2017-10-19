@@ -14,6 +14,10 @@ module.exports = {
     USDTBCH: {base: 'USDT', counter: 'BCH', display: 'USDT-BCH'},
     USDTNEO: {base: 'USDT', counter: 'NEO', display: 'USDT-NEO'}
   },
+  exchanges: {
+    BITFINEX: 'BITF',
+    BITTREX: 'BTRX'
+  },
   sides: {
     ASK: 'ask',
     BID: 'bid',

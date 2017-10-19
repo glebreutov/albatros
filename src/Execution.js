@@ -14,7 +14,6 @@ function getDriver (code) {
   }
 }
 
-
 /**
  * @return OrderStatus
  */

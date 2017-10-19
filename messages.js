@@ -3,6 +3,7 @@
  * @property {boolean} ack
  * @property {Object|string} [error]
  * @property {Object} [response] - api response for debug purposes
+ * @property {Exchange} exch
  */
 
 /**
@@ -33,4 +34,8 @@
 
 /**
  * @typedef {string} CryptoWallet
+ */
+
+/**
+ * @typedef {string} Exchange
  */
