@@ -65,7 +65,7 @@ exports.transferFunds = async (from, to, amount, assetId, toWallet) => {
     return withdrawStatus
   }
 
-  while (targetBalance.balance !== await balance(to, assetId)){
+  while (targetBalance.balance === await balance(to, assetId)){
     await sleep(10000)
   }
   return {ack: true}
