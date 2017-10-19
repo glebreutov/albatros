@@ -37,14 +37,14 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   // buy btc on btrx
   const buyOrder = await exec.buy(buyExch, pair, buyPrice, size)
   if (!buyOrder.ack) {
-    console.error(`can't buy ${buyOrder}`)
+    console.error('can\'t buy', buyOrder)
     return false
   }
   // sell loaned btc on bitf. price lock!
   console.log('shorting', sellExch, sellPrice, size)
   const sellOrder = await exec.short(sellExch, sellPrice, size)
   if (!sellOrder.ack) {
-    console.error(`can't short ${sellOrder}`)
+    console.error('can\'t short', sellOrder)
     return false
   }
 
@@ -69,7 +69,8 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   console.log('transfering funds', buyExch, sellExch, size - buyStatus.remains, pair.counter, buyWallet)
   const transferStatus = await exec.transferFunds(buyExch, sellExch, size - buyStatus.remains, pair.counter, buyWallet)
   if (!transferStatus.ack) {
-    console.error(`can't withdraw funds from ${buyExch} to ${sellExch} details: ${transferStatus}`)
+    console.error('can\'t withdraw funds from', buyExch, 'to', sellExch,
+      'details:', transferStatus)
     return false
   }
 
@@ -77,7 +78,7 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   console.log('closing position', sellExch)
   const posClosed = await exec.closePositions(sellExch)
   if (!posClosed.ack) {
-    console.error(`unable to close position ${posClosed}`)
+    console.error('unable to close position', posClosed)
     return false
   }
 
@@ -87,7 +88,8 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   console.log('backtransferring funds ', sellExch, buyExch, usdtSize, pair.base, sellWallet)
   const backtransferStatsu = await exec.transferFunds(sellExch, buyExch, usdtSize, pair.base, sellWallet)
   if (!backtransferStatsu.ack) {
-    console.error(`can't withdraw funds from ${sellExch} to ${buyExch} details ${backtransferStatsu}`)
+    console.error('can\'t withdraw funds from', sellExch, 'to',
+      buyExch, 'details', backtransferStatsu)
     return false
   }
   console.log('looks ok')
