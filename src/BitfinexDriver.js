@@ -29,6 +29,7 @@ exports.newOrder = async (pair, price, size, side) => {
     if (order.response.id) {
       return {
         ...order,
+        pair,
         ack: true,
         error: null,
         id: order.response.id.toString(),

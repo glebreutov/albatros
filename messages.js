@@ -17,6 +17,7 @@
  * @typedef {DriverResponse} OrderStatus
  * @property {string} [id]
  * @property {number} [remains]
+ * @property {Pair} [pair]
  */
 
 /**
