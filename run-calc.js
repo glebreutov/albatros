@@ -25,7 +25,7 @@ async function getRemainsAndCancel (order) {
     return {ack: false, remains: orderStatus.remains}
   } else {
     if (orderStatus.remains > 0) {
-      await exec.cancel(buyOrder)
+      await exec.cancel(order)
     }
     return {ack: true, remains: orderStatus.remains}
   }
