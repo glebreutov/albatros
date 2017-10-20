@@ -20,7 +20,7 @@ async function sendErrorLog (userIds, msg) {
   }
 }
 
-function sendMessage (...args) {
+async function sendMessage (...args) {
   return getBot().sendMessage(...args)
 }
 

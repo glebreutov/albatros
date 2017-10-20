@@ -1,6 +1,6 @@
 const BitfinexApi = require('./src/BitfinexWS')
 const bitfinexDriver = require('./src/BitfinexDriver')
-
+const BitfinexRest = require('./src/BitfinexRest')
 const BittrexApi = require('./src/Bittrex')
 const {pairs, sides, exchanges} = require('./src/const')
 const _ = require('lodash')
@@ -121,7 +121,7 @@ async function calc (book1, book2, exch1Name, exch2Name, pair) {
 
       execInProgress = true
       tgLog('DEMO MODE, syncExec is commented out')
-      tgLog(JSON.stringify(arbRes, null, 2))
+      // tgLog(JSON.stringify(arbRes, null, 2))
       await sleep(10 * 1000)
       // await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.volume, exch1Name, exch2Name, pair)
       execInProgress = false
@@ -223,13 +223,20 @@ function connectBittrexWs () {
   bittrex.on('bookUpdate', onBittrexBookUpdate)
 }
 
-let tgLog = () => {}
+let tgLog = async () => {}
 async function createTg (telegramBotToken, users) {
   try {
     await tg.connect(telegramBotToken)
-    tgLog = (str) => {
+    tgLog = async (str) => {
       try {
-        users.forEach(userId => tg.sendMessage(userId, str))
+        let sent = 0
+        for (let i in users) {
+          await tg.sendMessage(users[i], str)
+          sent += 1
+        }
+        if (sent && sent === users.length) {
+          return true
+        }
       } catch (er) {
         console.log('Could not send Telegram message:', er)
       }
@@ -253,7 +260,23 @@ async function main () {
   bitfinexDriver.setKeys(config.BITF.key, config.BITF.secret, nonceGen)
   bittrexDriver.setKeys(config.BTRX.key, config.BTRX.secret)
 
-  tgLog('Calc started')
+  const {base, counter} = config.pair
+  const btfBalanceBase = await bitfinexDriver.balance(base)
+  const btfBalanceCounter = await bitfinexDriver.balance(counter)
+  const btxBalanceBase = await bittrexDriver.balance(base)
+  const btxBalanceCounter = await bittrexDriver.balance(counter)
+  if (!btfBalanceBase.ack || !btfBalanceCounter.ack || !btxBalanceBase.ack || !btxBalanceCounter) {
+    console.log('No ack from drivers')
+    process.exit(1)
+  }
+  const msg = `Calc started. Balance:
+  Bitfinex: ${btfBalanceBase.balance} ${base}, ${btfBalanceCounter.balance} ${counter},
+  Bittrex: ${btxBalanceBase.balance} ${base}, ${btxBalanceCounter.balance} ${counter}`
+  if (!await tgLog(msg)) {
+    console.log('could not send reporting message')
+    process.exit(1)
+  }
+
 }
 
 if (require.main === module) {
