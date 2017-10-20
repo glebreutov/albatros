@@ -12,6 +12,7 @@ const exec = require('./src/Execution')
 const sleep = require('./src/tools').sleep
 const bittrexDriver = require('./src/BittrexDriver')
 const createNonceGenerator = require('./src/createNonceGenerator')
+const tg = require('./src/tg')
 
 function adaptBook (book, side) {
   return book.getLevels(side).map(x => ({price: parseFloat(x[Book.INDEX_PRICE]), size: parseFloat(x[Book.INDEX_SIZE])}))
@@ -101,7 +102,11 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   return true
 }
 
+let execInProgress = false
 async function calc (book1, book2, exch1Name, exch2Name, pair) {
+  if (execInProgress) {
+    return
+  }
   const myFunds = 1
   const buyDepth = adaptBook(book1, sides.ASK)
   const sellDepth = adaptBook(book2, sides.BID)
@@ -111,9 +116,16 @@ async function calc (book1, book2, exch1Name, exch2Name, pair) {
   if (buyDepth.length > 5 && sellDepth.length > 5) {
     const arbRes = calculate(buyDepth, sellDepth, fees1.taker, fees2.taker, fees1.withdrawal.BTC, fees2.withdrawal.USDT, myFunds)
     if (profitTreshold(arbRes)) {
-      // await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.volume, exch1Name, exch2Name, pair)
       console.log(new Date())
       console.log(arbRes)
+
+      execInProgress = true
+      tgLog('DEMO MODE, syncExec is commented out')
+      tgLog(JSON.stringify(arbRes, null, 2))
+      await sleep(10 * 1000)
+      // await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.volume, exch1Name, exch2Name, pair)
+      execInProgress = false
+
     }
     // console.log(arbRes)
   }
@@ -173,7 +185,9 @@ function parseConfig () {
       key: process.env.BTRX.split(':')[0],
       secret: process.env.BTRX.split(':')[1]
     },
-    pair: pairs[process.env.PAIR]
+    pair: pairs[process.env.PAIR],
+    tgToken: process.env.TG.split('!')[0],
+    tgUsers: process.env.TG.split('!')[1].split(',')
   }
 }
 
@@ -209,10 +223,26 @@ function connectBittrexWs () {
   bittrex.on('bookUpdate', onBittrexBookUpdate)
 }
 
+let tgLog = () => {}
+async function createTg (telegramBotToken, users) {
+  try {
+    await tg.connect(telegramBotToken)
+    tgLog = (str) => {
+      try {
+        users.forEach(userId => tg.sendMessage(userId, str))
+      } catch (er) {
+        console.log('Could not send Telegram message:', er)
+      }
+    }
+  } catch (e) {}
+}
+
 async function main () {
   const config = parseConfig()
 
   console.log(config)
+
+  await createTg(config.tgToken, config.tgUsers)
 
   connectBitfinexWs()
   connectBittrexWs()
@@ -222,6 +252,8 @@ async function main () {
   const nonceGen = createNonceGenerator()
   bitfinexDriver.setKeys(config.BITF.key, config.BITF.secret, nonceGen)
   bittrexDriver.setKeys(config.BTRX.key, config.BTRX.secret)
+
+  tgLog('Calc started')
 }
 
 if (require.main === module) {
