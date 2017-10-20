@@ -226,12 +226,19 @@ function connectBittrexWs () {
 let tgLog = async () => {}
 async function createTg (telegramBotToken, users) {
   try {
+    let msgCounter = 0
     await tg.connect(telegramBotToken)
-    tgLog = async (str) => {
+    tgLog = async (...args) => {
       try {
+        const str = `${++msgCounter}: ${args.map(next => {
+          if (typeof next === 'string') { return next }
+          if (typeof next === 'undefined') { return 'undefined' }
+          if (next instanceof Date) { return next.toISOString() }
+          return JSON.stringify(next)
+        }).join(' ')}`
         let sent = 0
         for (let i in users) {
-          await tg.sendMessage(users[i], str)
+          await tg.sendMessage(users[i], str, {parse_mode: 'Markdown'})
           sent += 1
         }
         if (sent && sent === users.length) {
