@@ -23,11 +23,22 @@ const nonceGen = createNonceGenerator()
 bitfinexDriver.setKeys(config.BITF.key, config.BITF.secret, nonceGen)
 bittrexDriver.setKeys(config.BTRX.key, config.BTRX.secret)
 
-//syncExec(5678, 5666, 0.005, 'BTRX', 'BITF', pairs.USDTBTC, '1BhEFhyZSfjXyQE77NvV3bSVNG8JChKhio', '1AW9uvGn6nFPsaAkZNnRGXkSLJXGK62wPG').then()
+// syncExec(5678, 5666, 0.005, 'BTRX', 'BITF', pairs.USDTBTC, '1BhEFhyZSfjXyQE77NvV3bSVNG8JChKhio', '1AW9uvGn6nFPsaAkZNnRGXkSLJXGK62wPG').then()
+// wallets
+// bitf btc margin 1BhEFhyZSfjXyQE77NvV3bSVNG8JChKhio
+// btrx btc 18FjdmsHGBVDVpELEsXTRqtXD7K6rj4owt
 
+async function moveMoney () {
+  const forw = await exec.transferFunds('BITF', 'BTRX', '0.01', 'BTC', '1BhEFhyZSfjXyQE77NvV3bSVNG8JChKhio')
+  console.log(forw)
+  const backw = await exec.transferFunds('BTRX', 'BITF', '0.01', 'BTC', '18FjdmsHGBVDVpELEsXTRqtXD7K6rj4owt')
+  console.log(backw)
+}
 async function test () {
   const newVar = await exec.closePositions('BITF')
   console.log(newVar)
 }
 
-test().then()
+// test().then()
+
+moveMoney().then()

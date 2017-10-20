@@ -57,7 +57,7 @@ exports.balance = balance
 
 exports.transferFunds = async (from, to, amount, assetId, toWallet) => {
   const targetBalance = await balance(to, assetId)
-  if (targetBalance.ack) {
+  if (!targetBalance.ack) {
     return targetBalance
   }
   const withdrawStatus = await withdraw(from, assetId, amount, toWallet)
@@ -65,10 +65,13 @@ exports.transferFunds = async (from, to, amount, assetId, toWallet) => {
     return withdrawStatus
   }
 
-  while (targetBalance.balance === await balance(to, assetId)){
+  while (true) {
+    const updatedBalance = await balance(to, assetId)
+    if (updatedBalance.ack && targetBalance.balance !== updatedBalance.balance) {
+      return {ack: true}
+    }
     await sleep(10000)
   }
-  return {ack: true}
 }
 
 exports.orderStatus = async (order) => {
