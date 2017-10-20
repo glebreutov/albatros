@@ -21,6 +21,9 @@ function profitTreshold (arbRes) {
   return arbRes.profit > 0
 }
 
+// ws apis
+let bitfinex, bittrex
+
 async function getRemainsAndCancel (order) {
   const orderStatus = await exec.orderStatus(order)
   if (!orderStatus.ack) {
@@ -118,23 +121,45 @@ async function calc (book1, book2, exch1Name, exch2Name, pair) {
 
 const bitfinexBooks = {}
 function onBitfinexBookUpdate (pair, data) {
+  bitfinexBooks.lastUpdated = Date.now()
   const bitfinexBook = bitfinexBooks[pair.display]
   bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[2] < 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
   bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
   bitfinexBook.updateLevels(sides.BID, data.filter(d => d[2] > 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
-  bitfinexBook.updateLevels(sides.BID, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
 
+  bitfinexBook.updateLevels(sides.BID, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
   const bittrexBook = bittrexBooks[pair.display]
+  if (!bittrexBooks.lastUpdated) {
+    console.log('Bittrex market data not ready')
+    return
+  }
+  if (Date.now() - bittrexBooks.lastUpdated > 5000) {
+    console.log('Bittrex market data outdated')
+    connectBittrexWs()
+    return
+  }
+
   calc(bittrexBook, bitfinexBook, exchanges.BITTREX, exchanges.BITFINEX, pair).then()
 }
 
 const bittrexBooks = {}
 function onBittrexBookUpdate (pair, data) {
+  bittrexBooks.lastUpdated = Date.now()
   const bittrexBook = bittrexBooks[pair.display]
   bittrexBook.updateLevels(sides.ASK, data.sell.map(d => [d.Rate, d.Quantity]))
-  bittrexBook.updateLevels(sides.BID, data.buy.map(d => [d.Rate, d.Quantity]))
 
+  bittrexBook.updateLevels(sides.BID, data.buy.map(d => [d.Rate, d.Quantity]))
   const bitfinexBook = bitfinexBooks[pair.display]
+  if (!bitfinexBooks.lastUpdated) {
+    console.log('Bitfinex market data not ready')
+    return
+  }
+  if (Date.now() - bitfinexBooks.lastUpdated > 5000) {
+    console.log('Bitfinex market data outdated')
+    connectBitfinexWs()
+    return
+  }
+
   calc(bittrexBook, bitfinexBook, exchanges.BITTREX, exchanges.BITFINEX, pair).then()
 }
 
@@ -152,34 +177,51 @@ function parseConfig () {
   }
 }
 
+function connectBitfinexWs () {
+  if (bitfinex) {
+    console.log('Disconnecting bitfinex ws api')
+    bitfinex.removeListener('bookUpdate', onBitfinexBookUpdate)
+    bitfinex.destroy()
+  }
+  console.log('Connecting bitfinex ws api')
+  bitfinex = new BitfinexApi()
+  bitfinexBooks.lastUpdated = 0
+  for (const k in pairs) {
+    bitfinexBooks[pairs[k].display] = new Book()
+    bitfinex.subscribeBook(pairs[k])
+  }
+  bitfinex.on('bookUpdate', onBitfinexBookUpdate)
+}
+
+function connectBittrexWs () {
+  if (bittrex) {
+    console.log('Disconnecting Bittrex ws api')
+    bittrex.removeListener('bookUpdate', onBittrexBookUpdate)
+    bittrex.destroy()
+  }
+  console.log('Connecting Bittrex ws api')
+  bittrex = new BittrexApi()
+  bittrexBooks.lastUpdated = 0
+  for (const k in pairs) {
+    bittrexBooks[pairs[k].display] = new Book()
+  }
+  bittrex.subscribe(Object.keys(pairs).map(key => pairs[key]))
+  bittrex.on('bookUpdate', onBittrexBookUpdate)
+}
+
 async function main () {
   const config = parseConfig()
 
   console.log(config)
 
-  const bitfinex = new BitfinexApi()
-  // const createNonceGenerator = require('./src/createNonceGenerator')
-  // const nonceGen = createNonceGenerator()
-  // bitfinexDriver.setKeys(config.BITF.key, config.BITF.secret, nonceGen)
-  const bittrex = new BittrexApi()
+  connectBitfinexWs()
+  connectBittrexWs()
 
   exec.registerDriver(exchanges.BITTREX, bittrexDriver)
   exec.registerDriver(exchanges.BITFINEX, bitfinexDriver)
   const nonceGen = createNonceGenerator()
   bitfinexDriver.setKeys(config.BITF.key, config.BITF.secret, nonceGen)
   bittrexDriver.setKeys(config.BTRX.key, config.BTRX.secret)
-
-  for (const k in pairs) {
-    bitfinexBooks[pairs[k].display] = new Book()
-    bitfinex.subscribeBook(pairs[k])
-  }
-  bitfinex.on('bookUpdate', onBitfinexBookUpdate)
-
-  for (const k in pairs) {
-    bittrexBooks[pairs[k].display] = new Book()
-  }
-  bittrex.subscribe(Object.keys(pairs).map(key => pairs[key]))
-  bittrex.on('bookUpdate', onBittrexBookUpdate)
 }
 
 // main(config).then()

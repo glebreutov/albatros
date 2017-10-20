@@ -25,6 +25,7 @@ class BittrexApi extends EventEmitter {
     bind([
       'onSubscriptionMessage'
     ], this)
+    this.isDestroying = false
     this.subscriptions = []
   }
 
@@ -33,6 +34,9 @@ class BittrexApi extends EventEmitter {
   }
 
   onSubscriptionMessage (data) {
+    if (this.isDestroying) {
+      return
+    }
     if (data.M === 'updateExchangeState') {
       data.A.forEach(dataFor => {
         const pair = dataFor.MarketName
@@ -49,6 +53,9 @@ class BittrexApi extends EventEmitter {
 
   // todo: reconnects?
   async subscribe (pairs) {
+    if (this.isDestroying) {
+      return
+    }
     for (let i = 0; i < pairs.length; i++) {
       const pair = converter.denormalize(pairs[i])
       const newSub = {
@@ -62,6 +69,11 @@ class BittrexApi extends EventEmitter {
       this.subscriptions.push(newSub)
     }
     bittrex.websockets.subscribe(pairs.map(converter.denormalize), this.onSubscriptionMessage)
+  }
+
+  destroy () {
+    debug('destroying')
+    this.isDestroying = true
   }
 }
 
