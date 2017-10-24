@@ -56,7 +56,7 @@ class BitfinexRest {
   }
 
   async getWallets () {
-    return (await this.authRequest('balances')).map(w => ({...w, currency: assetConverter.normalize(w.currency)}))
+    return (await this.authRequest('balances')).map(w => ({...w, currency: assetConverter.canNormalize(w.currency) ? assetConverter.normalize(w.currency) : w.currency}))
   }
 
   async withdraw (assetId, amount, address, fromWallet = 'exchange') {

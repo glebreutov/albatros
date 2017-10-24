@@ -292,18 +292,25 @@ async function main () {
 
   const {base, counter} = config.pair
   const btfBalanceBase = await bitfinexDriver.balance(base)
+  checkAck(btfBalanceBase)
   const btfBalanceCounter = await bitfinexDriver.balance(counter)
+  checkAck(btfBalanceCounter)
   const btxBalanceBase = await bittrexDriver.balance(base)
+  checkAck(btxBalanceBase)
   const btxBalanceCounter = await bittrexDriver.balance(counter)
-  if (!btfBalanceBase.ack || !btfBalanceCounter.ack || !btxBalanceBase.ack || !btxBalanceCounter) {
-    console.log('No ack from drivers')
-    process.exit(1)
-  }
+  checkAck(btxBalanceCounter)
   const msg = `Calc started. Balance:
   Bitfinex: ${btfBalanceBase.balance} ${base}, ${btfBalanceCounter.balance} ${counter},
   Bittrex: ${btxBalanceBase.balance} ${base}, ${btxBalanceCounter.balance} ${counter}`
   if (!await tgLog(msg)) {
     console.log('could not send reporting message')
+    process.exit(1)
+  }
+}
+
+function checkAck (resp) {
+  if (!resp.ack) {
+    console.log('No ack from driver:', resp)
     process.exit(1)
   }
 }

@@ -17,16 +17,18 @@ exports.bind = function bind (names, context) {
  * @return {denormalize: (function(*)), normalize: (function(*=))}
  */
 exports.createConverter = function createConverter (arr) {
-  const createFinder = (findKey, getKey) => val => {
+  const createFinder = (findKey, getKey, checkOnly) => val => {
     const found = _.find(arr, {[findKey]: val})
-    if (!found) {
+    if (!found && !checkOnly) {
       throw new Error(`Value ${JSON.stringify(val)} can't be ${findKey === 'normal' ? 'specified' : 'normalized'}`)
     }
-    return found[getKey]
+    return checkOnly ? !!found : found[getKey]
   }
   return {
     denormalize: createFinder('normal', 'specific'),
-    normalize: createFinder('specific', 'normal')
+    normalize: createFinder('specific', 'normal'),
+    canDenormalize: createFinder('normal', 'specific', true),
+    canNormalize: createFinder('specific', 'normal', true)
   }
 }
 
