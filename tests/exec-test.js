@@ -4,14 +4,17 @@ const {pairs, exchanges} = require('../src/const')
 const bitfinexDriver = require('../src/BitfinexDriver')
 const bittrexDriver = require('../src/BittrexDriver')
 const createNonceGenerator = require('../src/createNonceGenerator')
+
 const config = {
   BITF: {
     key: process.env.BITF.split(':')[0],
-    secret: process.env.BITF.split(':')[1]
+    secret: process.env.BITF.split(':')[1],
+    wallet: process.env.BITF.split(':')[2]
   },
   BTRX: {
     key: process.env.BTRX.split(':')[0],
-    secret: process.env.BTRX.split(':')[1]
+    secret: process.env.BTRX.split(':')[1],
+    wallet: process.env.BTRX.split(':')[2]
   },
   pair: pairs[process.env.PAIR]
 }
@@ -29,9 +32,9 @@ bittrexDriver.setKeys(config.BTRX.key, config.BTRX.secret)
 // btrx btc 18FjdmsHGBVDVpELEsXTRqtXD7K6rj4owt
 
 async function moveMoney () {
-  const forw = await exec.transferFunds('BITF', 'BTRX', '0.01', 'BTC', '1BhEFhyZSfjXyQE77NvV3bSVNG8JChKhio')
+  const forw = await exec.transferFunds('BITF', 'BTRX', '0.01', 'BTC', '18FjdmsHGBVDVpELEsXTRqtXD7K6rj4owt')
   console.log(forw)
-  const backw = await exec.transferFunds('BTRX', 'BITF', '0.01', 'BTC', '18FjdmsHGBVDVpELEsXTRqtXD7K6rj4owt')
+  const backw = await exec.transferFunds('BTRX', 'BITF', '0.01', 'BTC', '1BhEFhyZSfjXyQE77NvV3bSVNG8JChKhio')
   console.log(backw)
 }
 async function test () {

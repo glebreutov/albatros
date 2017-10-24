@@ -9,7 +9,7 @@ const calculate = require('./calc/arb_calc').calculate
 const fees = require('./calc/fees')
 // const exec = require('./src/executionApi')
 const exec = require('./src/Execution')
-const sleep = require('./src/tools').sleep
+const {assert, sleep} = require('./src/tools')
 const bittrexDriver = require('./src/BittrexDriver')
 const createNonceGenerator = require('./src/createNonceGenerator')
 const tg = require('./src/tg')
@@ -24,6 +24,10 @@ function profitTreshold (arbRes) {
 
 // ws apis
 let bitfinex, bittrex
+// book update handlers
+let onBitfinexBookUpdate, onBittrexBookUpdate
+// pairs to subscribe to market data
+let pairsToSubscribe
 
 async function getRemainsAndCancel (order) {
   const orderStatus = await exec.orderStatus(order)
@@ -103,7 +107,7 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
 }
 
 let execInProgress = false
-async function calc (book1, book2, exch1Name, exch2Name, pair) {
+async function calc (book1, book2, exch1Name, exch2Name, pair, sellWallet, buyWallet) {
   if (execInProgress) {
     return
   }
@@ -123,7 +127,7 @@ async function calc (book1, book2, exch1Name, exch2Name, pair) {
       tgLog('DEMO MODE, syncExec is commented out')
       // tgLog(JSON.stringify(arbRes, null, 2))
       await sleep(10 * 1000)
-      // await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.volume, exch1Name, exch2Name, pair)
+      // await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.volume, exch1Name, exch2Name, pair, sellWallet, buyWallet)
       execInProgress = false
 
     }
@@ -132,66 +136,81 @@ async function calc (book1, book2, exch1Name, exch2Name, pair) {
 }
 
 const bitfinexBooks = {}
-function onBitfinexBookUpdate (pair, data) {
-  bitfinexBooks.lastUpdated = Date.now()
-  const bitfinexBook = bitfinexBooks[pair.display]
-  bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[2] < 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
-  bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
-  bitfinexBook.updateLevels(sides.BID, data.filter(d => d[2] > 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
+function createBitfinexBookUpdateHandler (sellWallet, buyWallet) {
+  return (pair, data) => {
+    bitfinexBooks.lastUpdated = Date.now()
+    const bitfinexBook = bitfinexBooks[pair.display]
+    bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[2] < 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
+    bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
+    bitfinexBook.updateLevels(sides.BID, data.filter(d => d[2] > 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
 
-  bitfinexBook.updateLevels(sides.BID, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
-  const bittrexBook = bittrexBooks[pair.display]
-  if (!bittrexBooks.lastUpdated) {
-    console.log('Bittrex market data not ready')
-    return
+    bitfinexBook.updateLevels(sides.BID, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
+    const bittrexBook = bittrexBooks[pair.display]
+    if (!bittrexBooks.lastUpdated) {
+      console.log('Bittrex market data not ready')
+      return
+    }
+    if (Date.now() - bittrexBooks.lastUpdated > 5000) {
+      console.log('Bittrex market data outdated')
+      reconnectBittrexWs(onBittrexBookUpdate)
+      return
+    }
+    calc(bittrexBook, bitfinexBook, exchanges.BITTREX, exchanges.BITFINEX, pair, sellWallet, buyWallet).then()
   }
-  if (Date.now() - bittrexBooks.lastUpdated > 5000) {
-    console.log('Bittrex market data outdated')
-    connectBittrexWs()
-    return
-  }
-
-  calc(bittrexBook, bitfinexBook, exchanges.BITTREX, exchanges.BITFINEX, pair).then()
 }
 
 const bittrexBooks = {}
-function onBittrexBookUpdate (pair, data) {
-  bittrexBooks.lastUpdated = Date.now()
-  const bittrexBook = bittrexBooks[pair.display]
-  bittrexBook.updateLevels(sides.ASK, data.sell.map(d => [d.Rate, d.Quantity]))
+function createBittrexBookUpdateHandler (sellWallet, buyWallet) {
+  return (pair, data) => {
+    bittrexBooks.lastUpdated = Date.now()
+    const bittrexBook = bittrexBooks[pair.display]
+    bittrexBook.updateLevels(sides.ASK, data.sell.map(d => [d.Rate, d.Quantity]))
 
-  bittrexBook.updateLevels(sides.BID, data.buy.map(d => [d.Rate, d.Quantity]))
-  const bitfinexBook = bitfinexBooks[pair.display]
-  if (!bitfinexBooks.lastUpdated) {
-    console.log('Bitfinex market data not ready')
-    return
+    bittrexBook.updateLevels(sides.BID, data.buy.map(d => [d.Rate, d.Quantity]))
+    const bitfinexBook = bitfinexBooks[pair.display]
+    if (!bitfinexBooks.lastUpdated) {
+      console.log('Bitfinex market data not ready')
+      return
+    }
+    if (Date.now() - bitfinexBooks.lastUpdated > 5000) {
+      console.log('Bitfinex market data outdated')
+      reconnectBitfinexWs(onBitfinexBookUpdate)
+      return
+    }
+    calc(bittrexBook, bitfinexBook, exchanges.BITTREX, exchanges.BITFINEX, pair, sellWallet, buyWallet).then()
   }
-  if (Date.now() - bitfinexBooks.lastUpdated > 5000) {
-    console.log('Bitfinex market data outdated')
-    connectBitfinexWs()
-    return
-  }
-
-  calc(bittrexBook, bitfinexBook, exchanges.BITTREX, exchanges.BITFINEX, pair).then()
 }
 
 function parseConfig () {
+  const [bitfKey, bitfSecret, bitfWallet] = process.env.BITF.split(':')
+  const [btrxKey, btrxSecret, btrxWallet] = process.env.BTRX.split(':')
+  let [tgToken, tgUsers] = process.env.TG.split('!')
+  const pair = pairs[process.env.PAIR]
+  assert(bitfKey && bitfSecret && bitfWallet, 'env variable BITF should be API_KEY:API_SECRET:DEPOSIT_WALLET')
+  assert(btrxKey && btrxSecret && btrxWallet, 'env variable BTRX should be API_KEY:API_SECRET:DEPOSIT_WALLET')
+  assert(tgToken && tgUsers, `env variable TG should be TELEGRAM_BOT_TOKEN!user_id1,user_id2`)
+  assert(pair, `env variable PAIR should be a valid pair, got ${process.env.PAIR} instead. Valid pairs are ${Object.keys(pairs).join(', ')}`)
+  tgUsers = tgUsers.split(',')
   return {
     BITF: {
-      key: process.env.BITF.split(':')[0],
-      secret: process.env.BITF.split(':')[1]
+      key: bitfKey,
+      secret: bitfSecret,
+      wallet: bitfWallet
     },
     BTRX: {
-      key: process.env.BTRX.split(':')[0],
-      secret: process.env.BTRX.split(':')[1]
+      key: btrxKey,
+      secret: btrxSecret,
+      wallet: btrxWallet
     },
-    pair: pairs[process.env.PAIR],
-    tgToken: process.env.TG.split('!')[0],
-    tgUsers: process.env.TG.split('!')[1].split(',')
+    pair,
+    tgToken,
+    tgUsers
   }
 }
 
-function connectBitfinexWs () {
+function reconnectBitfinexWs () {
+  assert(_.isFunction(onBitfinexBookUpdate), 'onBitfinexBookUpdate should be a function')
+  assert(_.isObject(pairsToSubscribe) && Object.keys(pairsToSubscribe).length, 'pairsToSubscribe should be an object')
   if (bitfinex) {
     console.log('Disconnecting bitfinex ws api')
     bitfinex.removeListener('bookUpdate', onBitfinexBookUpdate)
@@ -200,14 +219,15 @@ function connectBitfinexWs () {
   console.log('Connecting bitfinex ws api')
   bitfinex = new BitfinexApi()
   bitfinexBooks.lastUpdated = 0
-  for (const k in pairs) {
-    bitfinexBooks[pairs[k].display] = new Book()
-    bitfinex.subscribeBook(pairs[k])
+  for (const k in pairsToSubscribe) {
+    bitfinexBooks[pairsToSubscribe[k].display] = new Book()
+    bitfinex.subscribeBook(pairsToSubscribe[k])
   }
   bitfinex.on('bookUpdate', onBitfinexBookUpdate)
 }
 
-function connectBittrexWs () {
+function reconnectBittrexWs () {
+  assert(_.isFunction(onBittrexBookUpdate), 'onBitfinexBookUpdate should be a function')
   if (bittrex) {
     console.log('Disconnecting Bittrex ws api')
     bittrex.removeListener('bookUpdate', onBittrexBookUpdate)
@@ -216,10 +236,10 @@ function connectBittrexWs () {
   console.log('Connecting Bittrex ws api')
   bittrex = new BittrexApi()
   bittrexBooks.lastUpdated = 0
-  for (const k in pairs) {
-    bittrexBooks[pairs[k].display] = new Book()
+  for (const k in pairsToSubscribe) {
+    bittrexBooks[pairsToSubscribe[k].display] = new Book()
   }
-  bittrex.subscribe(Object.keys(pairs).map(key => pairs[key]))
+  bittrex.subscribe(Object.keys(pairsToSubscribe).map(key => pairsToSubscribe[key]))
   bittrex.on('bookUpdate', onBittrexBookUpdate)
 }
 
@@ -254,12 +274,15 @@ async function createTg (telegramBotToken, users) {
 async function main () {
   const config = parseConfig()
 
+  pairsToSubscribe = _.pick(pairs, [process.env.PAIR])
   console.log(config)
 
   await createTg(config.tgToken, config.tgUsers)
 
-  connectBitfinexWs()
-  connectBittrexWs()
+  onBitfinexBookUpdate = createBitfinexBookUpdateHandler(config.BITF.wallet, config.BTRX.wallet)
+  onBittrexBookUpdate = createBittrexBookUpdateHandler(config.BITF.wallet, config.BTRX.wallet)
+  reconnectBitfinexWs()
+  reconnectBittrexWs()
 
   exec.registerDriver(exchanges.BITTREX, bittrexDriver)
   exec.registerDriver(exchanges.BITFINEX, bitfinexDriver)
@@ -283,7 +306,6 @@ async function main () {
     console.log('could not send reporting message')
     process.exit(1)
   }
-
 }
 
 if (require.main === module) {
