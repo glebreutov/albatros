@@ -7,8 +7,8 @@ const _ = require('lodash')
 const createNonceGenerator = require('../src/createNonceGenerator')
 
 const nonceGen = createNonceGenerator()
-const key = process.env.BITFINEX_API_KEY
-const secret = process.env.BITFINEX_API_SECRET
+const key = process.env.BITF.split(':')[0]
+const secret = process.env.BITF.split(':')[1]
 
 // main driver to test
 const drv1 = require('../src/BitfinexDriver')
@@ -20,14 +20,17 @@ const restApi = new BitfinexApi(key, secret, nonceGen)
 async function start () {
   debug('Starting test')
 
-  let orders = await restApi.getActiveOrders()
-  // assert(orders.length === 0, 'There should be no orders at this point. WARNING: all orders will be cancelled now')
+  const a = await drv1.deposit(pairs.USDTBTC.counter)
+  const t = 1
 
-  const ws = await restApi.getWallets()
-  // rate limit?
-  // const hs = await restApi.history()
-  // const t2 = await restApi.newOrder(pairs.USDTBTC, 5400, 0.005, sides.SHORT)
-  const r = await restApi.positions()
+  // let orders = await restApi.getActiveOrders()
+  // // assert(orders.length === 0, 'There should be no orders at this point. WARNING: all orders will be cancelled now')
+  //
+  // const ws = await restApi.getWallets()
+  // // rate limit?
+  // // const hs = await restApi.history()
+  // // const t2 = await restApi.newOrder(pairs.USDTBTC, 5400, 0.005, sides.SHORT)
+  // const r = await restApi.positions()
   // const b = await restApi.claimPosition(37553441, 0.005)
 
   // const wallet = _.find(await restApi.getWallets(), {'type': 'exchange', 'currency': 'btc'})

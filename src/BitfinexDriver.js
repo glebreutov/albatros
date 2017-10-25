@@ -169,3 +169,26 @@ exports.closePositions = async () => {
     }
   }
 }
+
+/**
+ * Get a wallet to send asset to
+ * @param {AssetId} assetId
+ * @return {Promise.<DepositWallet>}
+ */
+exports.deposit = async (assetId) => {
+  try {
+    const response = await api().deposit(assetId, 'trading')
+    return {
+      ack: true,
+      exch: exchanges.BITFINEX,
+      wallet: response.address,
+      response
+    }
+  } catch (e) {
+    return {
+      ack: false,
+      exch: exchanges.BITFINEX,
+      error: e
+    }
+  }
+}

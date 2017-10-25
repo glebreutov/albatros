@@ -26,6 +26,11 @@
  */
 
 /**
+ * @typedef {DriverResponse} DepositWallet
+ * @property {CryptoWallet} wallet
+ */
+
+/**
  * @typedef {string} Side
  */
 
