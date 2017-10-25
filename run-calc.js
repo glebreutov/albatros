@@ -43,52 +43,66 @@ async function getRemainsAndCancel (order) {
 
 async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sellWallet, buyWallet) {
   console.log('input', buyPrice, sellPrice, size, buyExch, sellExch, pair, sellWallet, buyWallet)
-  console.log('buying', size, 'of', pair, 'at', buyExch, 'at price', buyPrice)
   // sell loaned btc on bitf. price lock!
   console.log('shorting', size, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
+  tgLog('*shorting*', size, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
   const sellOrder = await exec.short(sellExch, pair, sellPrice, size)
   if (!sellOrder.ack) {
     console.error('can\'t short', sellOrder)
     return false
   }
   // buy btc on btrx
+  console.log('buying', size, 'of', pair, 'at', buyExch, 'at price', buyPrice)
+  tgLog('*buying*', size, 'of', pair, 'at', buyExch, 'at price', buyPrice)
   const buyOrder = await exec.buy(buyExch, pair, buyPrice, size)
   if (!buyOrder.ack) {
     console.error('can\'t buy', buyOrder)
+    tgLog('*can\'t buy*', buyOrder)
     return false
   }
 
   await sleep(10000)
   console.log('check remaining and cancel buy order', buyOrder)
+  tgLog('*check remaining* and cancel buy order', buyOrder)
   const buyStatus = await getRemainsAndCancel(buyOrder)
   console.log('remaining: ', buyStatus)
+  tgLog('*remaining*: ', buyStatus)
   if (!buyStatus.ack) {
-    console.log('can\'t get but order status ', buyStatus)
+    console.log('can\'t get but order status', buyStatus)
+    tgLog('*can\'t get but order status*', buyStatus)
     return false
   }
   console.log('check remaining and cancel sell order', sellOrder)
+  tgLog('*check remaining* and cancel sell order', sellOrder)
   const sellStatus = await getRemainsAndCancel(sellOrder)
   console.log('remaining:', sellStatus)
+  tgLog('*remaining*:', sellStatus)
   if (!sellStatus.ack) {
-    console.log('can\'t get but order status ', sellStatus)
+    console.log('can\'t get but order status', sellStatus)
+    tgLog('*can\'t get but order status*', sellStatus)
     return false
   }
 
   // transfer BTC from BTRX to BITF
   // todo: and wait for btc deposit at BITF
   console.log('transfering', size - buyStatus.remains, 'of', pair.counter, 'from', buyExch, 'to', sellExch, 'to wallet', buyWallet)
+  tgLog('*transfering*', size - buyStatus.remains, 'of', pair.counter, 'from', buyExch, 'to', sellExch, 'to wallet', buyWallet)
   const transferStatus = await exec.transferFunds(buyExch, sellExch, size - buyStatus.remains, pair.counter, buyWallet)
   if (!transferStatus.ack) {
     console.error('can\'t withdraw funds from', buyExch, 'to', sellExch,
+      'details:', transferStatus)
+    tgLog('*can\'t withdraw* funds from', buyExch, 'to', sellExch,
       'details:', transferStatus)
     return false
   }
 
   // return loan on BITF
   console.log('closing position', sellExch)
+  tgLog('*closing position*', sellExch)
   const posClosed = await exec.closePositions(sellExch)
   if (!posClosed.ack) {
     console.error('unable to close position', posClosed)
+    tgLog('*unable to close position*', posClosed)
     return false
   }
 
@@ -96,13 +110,17 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sel
   // consider using 3.3x rule
   const usdtSize = size * buyPrice - sellStatus.remains
   console.log('backtransferring', usdtSize, 'of', pair.base, 'from', sellExch, 'to', buyExch, 'to wallet', sellWallet)
+  tgLog('*backtransferring*', usdtSize, 'of', pair.base, 'from', sellExch, 'to', buyExch, 'to wallet', sellWallet)
   const backtransferStatsu = await exec.transferFunds(sellExch, buyExch, usdtSize, pair.base, sellWallet)
   if (!backtransferStatsu.ack) {
     console.error('can\'t withdraw funds from', sellExch, 'to',
       buyExch, 'details', backtransferStatsu)
+    tgLog('*can\'t withdraw* funds from', sellExch, 'to',
+      buyExch, 'details', backtransferStatsu)
     return false
   }
   console.log('looks ok')
+  tgLog('looks ok')
   return true
 }
 
@@ -127,9 +145,10 @@ async function calc (book1, book2, exch1Name, exch2Name, pair, sellWallet, buyWa
       tgLog('DEMO MODE, syncExec is commented out')
       // tgLog(JSON.stringify(arbRes, null, 2))
       await sleep(10 * 1000)
-      // await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.volume, exch1Name, exch2Name, pair, sellWallet, buyWallet)
+      // const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.volume, exch1Name, exch2Name, pair, sellWallet, buyWallet)
+      // TODO
+      // await exec.cancelAllOrders()
       execInProgress = false
-
     }
     // console.log(arbRes)
   }
@@ -250,11 +269,11 @@ async function createTg (telegramBotToken, users) {
     await tg.connect(telegramBotToken)
     tgLog = async (...args) => {
       try {
-        const str = `${++msgCounter}: ${args.map(next => {
-          if (typeof next === 'string') { return next }
-          if (typeof next === 'undefined') { return 'undefined' }
-          if (next instanceof Date) { return next.toISOString() }
-          return JSON.stringify(next)
+        const str = `${++msgCounter}: ${args.map(arg => {
+          if (typeof arg === 'string') { return arg }
+          if (typeof arg === 'undefined') { return 'undefined' }
+          if (arg instanceof Date) { return arg.toISOString() }
+          return '```\n' + JSON.stringify(_.cloneDeepWith(arg, argv => (argv instanceof Error) ? `Error: ${argv.message}` : argv), null, 2) + '```'
         }).join(' ')}`
         let sent = 0
         for (let i in users) {
