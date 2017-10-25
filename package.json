@@ -20,8 +20,8 @@
   "dependencies": {
     "autobahn": "^17.5.2",
     "big.js": "^3.2.0",
-    "debug": "^3.0.1",
-    "immutable": "^3.8.1",
+    "debug": "^3.1.0",
+    "immutable": "^3.8.2",
     "lodash": "^4.17.4",
     "node-bittrex-api": "git+https://github.com/dparlevliet/node.bittrex.api.git",
     "node-fetch": "^1.7.3",
