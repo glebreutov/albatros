@@ -175,7 +175,7 @@ exports.closePositions = async () => {
  * @param {AssetId} assetId
  * @return {Promise.<DepositWallet>}
  */
-exports.deposit = async (assetId) => {
+exports.wallet = async (assetId) => {
   try {
     const response = await api().deposit(assetId, 'trading')
     return {

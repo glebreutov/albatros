@@ -135,6 +135,19 @@ exports.balance = async (assetId) => {
   }
 }
 
+exports.wallet = async (currency) => {
+  try {
+    const resp = await req('account/getdepositaddress', {currency})
+    if (!resp.success) {
+      return failed(resp)
+    } else {
+      return ok({wallet: resp.result.Address, exch: 'BTRX'})
+    }
+  } catch (e) {
+    return failed(e)
+  }
+}
+
 async function req (cmd, options) {
   function signedRequestHeades (apiSecret, uri) {
     const signature = crypto

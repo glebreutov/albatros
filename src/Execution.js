@@ -50,8 +50,8 @@ const withdraw = async (exch, assetId, amount, wallet) => {
 }
 exports.withdraw = withdraw
 
-exports.deposit = async (exch, assetId) => {
-  return getDriver(exch).deposit(assetId)
+exports.wallet = async (exch, assetId) => {
+  return getDriver(exch).wallet(assetId)
 }
 
 async function balance (exch, assetId) {

@@ -41,7 +41,27 @@ async function getRemainsAndCancel (order) {
   }
 }
 
-async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair, sellWallet, buyWallet) {
+async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair) {
+  // bitf usdt
+  const sellWalletMsg = await exec.wallet(sellExch, pair.base)
+  console.log('sell wallet', sellWalletMsg)
+  if (!sellWalletMsg.ack) {
+    console.log('getting sell wallet failed', sellWalletMsg)
+    tgLog('*getting sell wallet failed*')
+    return false
+  }
+  // btrx btc in our case
+  const buyWalletMsg = await exec.wallet(buyExch, pair.counter)
+  console.log('buy wallet', buyWalletMsg)
+  if (!buyWalletMsg.ack) {
+    console.log('getting buy wallet failed', sellWalletMsg)
+    tgLog('*getting buy wallet failed*')
+    return false
+  }
+
+  const sellWallet = sellWalletMsg.wallet
+  const buyWallet = buyWalletMsg.wallet
+
   console.log('input', buyPrice, sellPrice, size, buyExch, sellExch, pair, sellWallet, buyWallet)
   // sell loaned btc on bitf. price lock!
   console.log('shorting', size, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
@@ -339,4 +359,3 @@ if (require.main === module) {
 } else {
   exports.syncExec = syncExec
 }
-
