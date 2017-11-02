@@ -4,7 +4,8 @@ const feeMap = {
     maker: 0,
     withdrawal: {
       BTC: 0.0004,
-      USDT: 2
+      USDT: 2,
+      ETH: 0.01
     }
   },
   BTRX: {
@@ -12,7 +13,8 @@ const feeMap = {
     maker: 0,
     withdrawal: {
       BTC: 0.001,
-      USDT: 5
+      USDT: 5,
+      ETH: 0.002
     }
   },
   PLNX: {

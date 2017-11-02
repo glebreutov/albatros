@@ -147,14 +147,14 @@ async function calc (book1, book2, exch1Name, exch2Name, pair) {
   if (execInProgress) {
     return
   }
-  const myFunds = 1
+  const myFunds = 0.1
   const buyDepth = adaptBook(book1, sides.ASK)
   const sellDepth = adaptBook(book2, sides.BID)
   const fees1 = fees.getFees(exch1Name)
   const fees2 = fees.getFees(exch2Name)
 
   if (buyDepth.length > 5 && sellDepth.length > 5) {
-    const arbRes = calculate(buyDepth, sellDepth, fees1.taker, fees2.taker, fees1.withdrawal.BTC, fees2.withdrawal.USDT, myFunds)
+    const arbRes = calculate(buyDepth, sellDepth, fees1.taker, fees2.taker, fees1.withdrawal[pair.base], fees2.withdrawal[pair.counter], myFunds)
     if (profitTreshold(arbRes)) {
       console.log(new Date())
       console.log(arbRes)
@@ -186,7 +186,7 @@ function onBitfinexBookUpdate (pair, data) {
     console.log('Bittrex market data not ready')
     return
   }
-  if (Date.now() - bittrexBooks.lastUpdated > 5000) {
+  if (Date.now() - bittrexBooks.lastUpdated > 30000) {
     console.log('Bittrex market data outdated')
     reconnectBittrexWs(onBittrexBookUpdate)
     return
@@ -206,7 +206,7 @@ function onBittrexBookUpdate(pair, data) {
     console.log('Bitfinex market data not ready')
     return
   }
-  if (Date.now() - bitfinexBooks.lastUpdated > 5000) {
+  if (Date.now() - bitfinexBooks.lastUpdated > 30000) {
     console.log('Bitfinex market data outdated')
     reconnectBitfinexWs(onBitfinexBookUpdate)
     return
