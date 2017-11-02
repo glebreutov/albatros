@@ -7,6 +7,9 @@ const {pairs, sides} = require('./const')
 const pairConverter = createConverter([{
   normal: pairs.USDTBTC,
   specific: 'BTCUSD'
+}, {
+  normal: pairs.BTCETH,
+  specific: 'ETHBTC'
 }])
 
 const assetConverter = createConverter([{
@@ -15,6 +18,9 @@ const assetConverter = createConverter([{
 }, {
   normal: pairs.USDTBTC.counter,
   specific: 'btc'
+}, {
+  normal: pairs.USDTETH.counter,
+  specific: 'eth'
 }])
 
 const sideConverter = createConverter([{
@@ -36,6 +42,9 @@ function getOrderType (side) {
 }
 
 const withdrawConverter = createConverter([{
+  normal: pairs.USDTETH.counter,
+  specific: 'ethereum'
+}, {
   normal: pairs.USDTBTC.counter,
   specific: 'bitcoin'
 }, {

@@ -12,7 +12,9 @@ module.exports = {
     USDTXRP: {base: 'USDT', counter: 'XRP', display: 'USDT-XRP'},
     USDTOMG: {base: 'USDT', counter: 'OMG', display: 'USDT-OMG'},
     USDTBCH: {base: 'USDT', counter: 'BCH', display: 'USDT-BCH'},
-    USDTNEO: {base: 'USDT', counter: 'NEO', display: 'USDT-NEO'}
+    USDTNEO: {base: 'USDT', counter: 'NEO', display: 'USDT-NEO'},
+
+    BTCETH: {base: 'BTC', counter: 'ETH', display: 'BTC-ETH'}
   },
   exchanges: {
     BITFINEX: 'BITF',
