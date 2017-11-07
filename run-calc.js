@@ -5,7 +5,7 @@ const BittrexApi = require('./src/Bittrex')
 const {pairs, sides, exchanges} = require('./src/const')
 const _ = require('lodash')
 const Book = require('./src/Book')
-const calculate = require('./calc/arb_calc').calculate
+const calculate = require('./calc/arb_calc_new').calculate
 const fees = require('./calc/fees')
 // const exec = require('./src/executionApi')
 const exec = require('./src/Execution')
@@ -143,28 +143,31 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair) {
 }
 
 let execInProgress = false
-async function calc (book1, book2, exch1Name, exch2Name, pair) {
+async function calc (book1, book2, buyExchName, sellExchName, pair) {
   if (execInProgress) {
     return
   }
-  const myFunds = 0.1
+
   const buyDepth = adaptBook(book1, sides.ASK)
   const sellDepth = adaptBook(book2, sides.BID)
-  const fees1 = fees.getFees(exch1Name)
-  const fees2 = fees.getFees(exch2Name)
+  const buyFees = fees.getFees(buyExchName)
+  const sellFees = fees.getFees(sellExchName)
+  // const buyBalance = exec.balance(buyExchName, pair.base)
+  const buyBalance = 0.1
 
   if (buyDepth.length > 5 && sellDepth.length > 5) {
-    const arbRes = calculate(buyDepth, sellDepth, fees1.taker, fees2.taker, fees1.withdrawal[pair.base], fees2.withdrawal[pair.counter], myFunds)
+    const arbRes = calculate(buyDepth, sellDepth, buyFees.taker, sellFees.taker,
+      buyFees.withdrawal[pair.base], sellFees.withdrawal[pair.counter], buyBalance)
     if (profitTreshold(arbRes)) {
       console.log(new Date())
       console.log(arbRes)
 
       execInProgress = true
-      tgLog('DEMO MODE, syncExec is commented out')
+      // tgLog('DEMO MODE, syncExec is commented out')
       // tgLog(JSON.stringify(arbRes, null, 2))
-      await sleep(10 * 1000)
-      // const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.volume, exch1Name, exch2Name, pair, sellWallet, buyWallet)
-      // TODO
+      // await sleep(10 * 1000)
+      const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.volume, buyExchName, sellExchName, pair)
+      process.exit()
       // await exec.cancelAllOrders()
       execInProgress = false
     }
@@ -195,7 +198,7 @@ function onBitfinexBookUpdate (pair, data) {
 }
 
 const bittrexBooks = {}
-function onBittrexBookUpdate(pair, data) {
+function onBittrexBookUpdate (pair, data) {
   bittrexBooks.lastUpdated = Date.now()
   const bittrexBook = bittrexBooks[pair.display]
   bittrexBook.updateLevels(sides.ASK, data.sell.map(d => [d.Rate, d.Quantity]))

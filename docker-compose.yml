@@ -4,5 +4,4 @@ services:
     build: .
     env_file:
       - .env
-    environment:
     command: npm start
