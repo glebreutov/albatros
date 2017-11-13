@@ -43,8 +43,12 @@ function calcBuySize (depth, amount) {
   return calcBookAmount2(depth, amount).size
 }
 
+function log (message) {
+  // console.log(message)
+}
+
 function calculate (buyDepth, sellDepth, buyFee, sellFee,
-                    buyWithdrawal, sellWithdrawal, buyBalance) {
+                    buyWithdrawal, sellWithdrawal, buyBalance, pair) {
   // calculating profitable diff
   const profitableSellDepth = sellDepth
         .filter(s => buyDepth.filter(b => b.price < s.price).length > 0)
@@ -52,19 +56,29 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
   const profitableBuyDepth = buyDepth
         .filter(b => sellDepth.filter(s => s.price > b.price).length > 0)
 
+  log(`buy balance: ${buyBalance} ${pair.base}`)
+  log(`buy fee: ${buyFee}%`)
+  log(`sell fee: ${sellFee}%`)
+  log(`${pair.counter} fee: ${buyWithdrawal}`)
+  log(`${pair.base} fee: ${sellWithdrawal}`)
+
+  log(`profitable buy depth ${profitableBuyDepth.size}`)
+  log(`profitable sell depth ${profitableSellDepth.size}`)
   // calculating amount to buy
   // returns volume tht can be bought
   const buySize = calcBuySize(profitableBuyDepth, buyBalance)
+  log(`available amount to buy ${buySize}`)
   // calculating how much we able to sell
   const sellSize = calcSellSize(profitableSellDepth, buySize)
-
+  log(`available amount to sell ${sellSize}`)
   // getting deal size
   const orderVol = Math.min(buySize, sellSize)
 
   // just getting worse prices from all prices to match all volume
-  const buyPrice = buyDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0)
-  const sellPrice = sellDepth.map(x => x.price).reduce((acc, val) => Math.min(acc, val), Number.MAX_SAFE_INTEGER)
-
+  const buyPrice = profitableBuyDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0)
+  log(`limit buy ${buyPrice}`)
+  const sellPrice = profitableSellDepth.map(x => x.price).reduce((acc, val) => Math.min(acc, val), Number.MAX_SAFE_INTEGER)
+  log(`limit short ${sellPrice}`)
   const sellAmt = sellPrice * orderVol
   const buyAmt = buyPrice * orderVol
 
