@@ -40,7 +40,7 @@ async function getRemainsAndCancel (order) {
 }
 
 async function syncExec (buyPrice, sellPrice, buySize, sellSize, buyExch, sellExch, pair) {
-  console.log('input', {buyPrice, sellPrice, buySize, sellSize, buyExch, sellExch, pair, sellWallet, buyWallet})
+  console.log('input', {buyPrice, sellPrice, buySize, sellSize, buyExch, sellExch, pair})
   // sell loaned btc on bitf. price lock!
   console.log('shorting', sellSize, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
   tgLog('*shorting*', sellSize, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
@@ -148,6 +148,7 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
       // tgLog('DEMO MODE, syncExec is commented out')
       // tgLog(JSON.stringify(arbRes, null, 2))
       // await sleep(10 * 1000)
+      await tgLog(`going to get some money calculated profit: ${arbRes.profit}`)
       const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.buySize, arbRes.shortSize, buyExchName, sellExchName, pair)
       process.exit()
       // await exec.cancelAllOrders()
