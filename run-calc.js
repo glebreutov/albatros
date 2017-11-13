@@ -39,9 +39,9 @@ async function getRemainsAndCancel (order) {
   }
 }
 
-async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair) {
+async function syncExec (buyPrice, sellPrice, buySize, sellSize, buyExch, sellExch, pair) {
   // bitf usdt
-  const sellWalletMsg = await exec.wallet(sellExch, pair.base)
+  const sellWalletMsg = await exec.wallet(sellExch, pair.counter)
   console.log('sell wallet', sellWalletMsg)
   if (!sellWalletMsg.ack) {
     console.log('getting sell wallet failed', sellWalletMsg)
@@ -49,7 +49,7 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair) {
     return false
   }
   // btrx btc in our case
-  const buyWalletMsg = await exec.wallet(buyExch, pair.counter)
+  const buyWalletMsg = await exec.wallet(buyExch, pair.base)
   console.log('buy wallet', buyWalletMsg)
   if (!buyWalletMsg.ack) {
     console.log('getting buy wallet failed', buyWalletMsg)
@@ -60,19 +60,19 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair) {
   const sellWallet = sellWalletMsg.wallet
   const buyWallet = buyWalletMsg.wallet
 
-  console.log('input', buyPrice, sellPrice, size, buyExch, sellExch, pair, sellWallet, buyWallet)
+  console.log('input', {buyPrice, sellPrice, buySize, sellSize, buyExch, sellExch, pair, sellWallet, buyWallet})
   // sell loaned btc on bitf. price lock!
-  console.log('shorting', size, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
-  tgLog('*shorting*', size, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
-  const sellOrder = await exec.short(sellExch, pair, sellPrice, size)
+  console.log('shorting', sellSize, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
+  tgLog('*shorting*', sellSize, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
+  const sellOrder = await exec.short(sellExch, pair, sellPrice, sellSize)
   if (!sellOrder.ack) {
     console.error('can\'t short', sellOrder)
     return false
   }
   // buy btc on btrx
-  console.log('buying', size, 'of', pair, 'at', buyExch, 'at price', buyPrice)
-  tgLog('*buying*', size, 'of', pair, 'at', buyExch, 'at price', buyPrice)
-  const buyOrder = await exec.buy(buyExch, pair, buyPrice, size)
+  console.log('buying', buySize, 'of', pair, 'at', buyExch, 'at price', buyPrice)
+  tgLog('*buying*', buySize, 'of', pair, 'at', buyExch, 'at price', buyPrice)
+  const buyOrder = await exec.buy(buyExch, pair, buyPrice, buySize)
   if (!buyOrder.ack) {
     console.error('can\'t buy', buyOrder)
     tgLog('*can\'t buy*', buyOrder)
@@ -103,9 +103,9 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair) {
 
   // transfer BTC from BTRX to BITF
   // todo: and wait for btc deposit at BITF
-  console.log('transfering', size - buyStatus.remains, 'of', pair.counter, 'from', buyExch, 'to', sellExch, 'to wallet', buyWallet)
-  tgLog('*transfering*', size - buyStatus.remains, 'of', pair.counter, 'from', buyExch, 'to', sellExch, 'to wallet', buyWallet)
-  const transferStatus = await exec.transferFunds(buyExch, sellExch, size - buyStatus.remains, pair.counter, buyWallet)
+  console.log('transfering', buySize - buyStatus.remains, 'of', pair.counter, 'from', buyExch, 'to', sellExch, 'to wallet', sellWallet)
+  tgLog('*transfering*', buySize - buyStatus.remains, 'of', pair.counter, 'from', buyExch, 'to', sellExch, 'to wallet', sellWallet)
+  const transferStatus = await exec.transferFunds(buyExch, sellExch, buySize - buyStatus.remains, pair.counter, sellWallet)
   if (!transferStatus.ack) {
     console.error('can\'t withdraw funds from', buyExch, 'to', sellExch,
       'details:', transferStatus)
@@ -126,10 +126,10 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair) {
 
   // transfer usdt form bitf to btrx
   // consider using 3.3x rule
-  const usdtSize = size * buyPrice - sellStatus.remains
-  console.log('backtransferring', usdtSize, 'of', pair.base, 'from', sellExch, 'to', buyExch, 'to wallet', sellWallet)
-  tgLog('*backtransferring*', usdtSize, 'of', pair.base, 'from', sellExch, 'to', buyExch, 'to wallet', sellWallet)
-  const backtransferStatsu = await exec.transferFunds(sellExch, buyExch, usdtSize, pair.base, sellWallet)
+  const usdtSize = sellSize * buyPrice - sellStatus.remains
+  console.log('backtransferring', usdtSize, 'of', pair.base, 'from', sellExch, 'to', buyExch, 'to wallet', buyWallet)
+  tgLog('*backtransferring*', usdtSize, 'of', pair.base, 'from', sellExch, 'to', buyExch, 'to wallet', buyWallet)
+  const backtransferStatsu = await exec.transferFunds(sellExch, buyExch, usdtSize, pair.base, buyWallet)
   if (!backtransferStatsu.ack) {
     console.error('can\'t withdraw funds from', sellExch, 'to',
       buyExch, 'details', backtransferStatsu)
@@ -168,7 +168,7 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
       // tgLog('DEMO MODE, syncExec is commented out')
       // tgLog(JSON.stringify(arbRes, null, 2))
       // await sleep(10 * 1000)
-      const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.volume, buyExchName, sellExchName, pair)
+      const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.buySize, arbRes.shortSize, buyExchName, sellExchName, pair)
       process.exit()
       // await exec.cancelAllOrders()
       execInProgress = false
@@ -180,11 +180,11 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
         (!prevArb || res.rawProfit / Math.abs(prevArb.rawProfit - res.rawProfit) > 0.1)
     }
 
-    if (isWorthToPrint(arbRes)) {
-      prevSendTime = Date.now()
-      prevArb = arbRes
-      tgLog(`raw profit is ${arbRes.rawProfit} clean profit is ${arbRes.profit} = ${arbRes.profitDescribe}`)
-    }
+    // if (isWorthToPrint(arbRes)) {
+    //   prevSendTime = Date.now()
+    //   prevArb = arbRes
+    //   tgLog(`raw profit is ${arbRes.rawProfit} clean profit is ${arbRes.profit} = ${arbRes.profitDescribe}`)
+    // }
     // console.log(arbRes)
   }
 }

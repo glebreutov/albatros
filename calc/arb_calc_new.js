@@ -74,22 +74,27 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
   // getting deal size
   const orderVol = Math.min(buySize, sellSize)
 
+
   // just getting worse prices from all prices to match all volume
   const buyPrice = profitableBuyDepth.map(x => x.price).reduce((acc, val) => Math.min(acc, val), Number.MAX_SAFE_INTEGER)
   log(`limit buy ${buyPrice}`)
   const sellPrice = profitableSellDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0)
   log(`limit short ${sellPrice}`)
-  const sellAmt = sellPrice * orderVol
-  const buyAmt = buyPrice * orderVol
+  const buyVol = orderVol
+  const shortVol = orderVol - buyWithdrawal
+  const shortAmt = sellPrice * shortVol
+  const buyAmt = buyPrice * buyVol
 
   const perc = val(buyDepth[0].price, sellDepth[0].price)
   return {
-    profit: sellAmt * (1 - sellFee) - buyAmt * (1 + buyFee) - buyWithdrawal * buyPrice - sellWithdrawal,
-    rawProfit: sellAmt - buyAmt,
-    profitDescribe: `${sellAmt} * (1 - ${sellFee}) - ${buyAmt} * (1 + ${buyFee}) - ${buyWithdrawal} * ${buyPrice} - ${sellWithdrawal}`,
-    sellAmt: sellAmt * (1 - sellFee),
+    profit: shortAmt * (1 - sellFee) - buyAmt * (1 + buyFee) - sellWithdrawal,
+    rawProfit: shortAmt - buyAmt,
+    profitDescribe: `${shortAmt} * (1 - ${sellFee}) - ${buyAmt} * (1 + ${buyFee}) - ${buyWithdrawal} * ${buyPrice} - ${sellWithdrawal}`,
+    sellAmt: shortAmt * (1 - sellFee),
     buyAmt: buyAmt * (1 + buyFee),
-    volume: orderVol,
+    //volume: orderVol,
+    buySize: buyVol,
+    shortSize: shortVol,
     perc: perc,
     spread: sellPrice - buyPrice,
     buy: buyPrice,

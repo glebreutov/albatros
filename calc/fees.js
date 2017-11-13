@@ -3,7 +3,7 @@ const feeMap = {
     taker: 0.002,
     maker: 0,
     withdrawal: {
-      BTC: 0.0004,
+      BTC: 0.0005,
       USDT: 2,
       ETH: 0.01
     }

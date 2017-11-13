@@ -36,10 +36,13 @@ bittrexDriver.setKeys(config.BTRX.key, config.BTRX.secret)
 async function moveMoney () {
   // const targetBalance = await exec.balance('BITF', 'ETH')
   // console.log(targetBalance)
-  // const wallet = await exec.wallet('BITF', 'ETH')
+  const walletBitf = await exec.wallet('BITF', 'ETH')
+  console.log({walletBitf})
+  const walletBtrx = await exec.wallet('BTRX', 'BTC')
+  console.log({walletBtrx})
   // console.log(wallet)
   // const transferStatus = await exec.transferFunds('BTRX', 'BITF', 2.1537663321524323, 'ETH', '0x3c8279d082e9d61bfc255d32153510796b063dad')
-  console.log(transferStatus)
+  // console.log(transferStatus)
 }
 // async function test () {
 //   const newVar = await exec.closePositions('BITF')
