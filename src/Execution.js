@@ -50,19 +50,30 @@ const withdraw = async (exch, assetId, amount, wallet) => {
 }
 exports.withdraw = withdraw
 
-exports.wallet = async (exch, assetId) => {
+const wallet = async (exch, assetId) => {
   return getDriver(exch).wallet(assetId)
 }
+exports.wallet = wallet
 
 async function balance (exch, assetId) {
   return getDriver(exch).balance(assetId)
 }
 exports.balance = balance
 
-exports.transferFunds = async (from, to, amount, assetId, toWallet) => {
+exports.transferFunds = async (from, to, amount, assetId) => {
   const targetBalance = await balance(to, assetId)
   if (!targetBalance.ack) {
     return targetBalance
+  }
+  const walletMessage = await wallet(to, assetId)
+  if (!walletMessage.ack) {
+    return walletMessage
+  }
+  const toWallet = walletMessage.wallet
+  const correctBitfAddr = to === 'BITF' && assetId === 'ETH' && toWallet === '0x3c8279d082e9d61bfc255d32153510796b063dad'
+  const correctBtrxAddr = to === 'BTRX' && assetId === 'BTC' && toWallet === '18FjdmsHGBVDVpELEsXTRqtXD7K6rj4owt'
+  if (!correctBitfAddr && !correctBtrxAddr) {
+    return {ack: false, result: {to, assetId, toWallet}, message: `Not correct addess. Inner check`}
   }
   const withdrawStatus = await withdraw(from, assetId, amount, toWallet)
   if (!withdrawStatus.ack) {

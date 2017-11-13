@@ -40,26 +40,6 @@ async function getRemainsAndCancel (order) {
 }
 
 async function syncExec (buyPrice, sellPrice, buySize, sellSize, buyExch, sellExch, pair) {
-  // bitf usdt
-  const sellWalletMsg = await exec.wallet(sellExch, pair.counter)
-  console.log('sell wallet', sellWalletMsg)
-  if (!sellWalletMsg.ack) {
-    console.log('getting sell wallet failed', sellWalletMsg)
-    tgLog('*getting sell wallet failed*', sellWalletMsg)
-    return false
-  }
-  // btrx btc in our case
-  const buyWalletMsg = await exec.wallet(buyExch, pair.base)
-  console.log('buy wallet', buyWalletMsg)
-  if (!buyWalletMsg.ack) {
-    console.log('getting buy wallet failed', buyWalletMsg)
-    tgLog('*getting buy wallet failed*', buyWalletMsg)
-    return false
-  }
-
-  const sellWallet = sellWalletMsg.wallet
-  const buyWallet = buyWalletMsg.wallet
-
   console.log('input', {buyPrice, sellPrice, buySize, sellSize, buyExch, sellExch, pair, sellWallet, buyWallet})
   // sell loaned btc on bitf. price lock!
   console.log('shorting', sellSize, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
@@ -103,9 +83,9 @@ async function syncExec (buyPrice, sellPrice, buySize, sellSize, buyExch, sellEx
 
   // transfer BTC from BTRX to BITF
   // todo: and wait for btc deposit at BITF
-  console.log('transfering', buySize - buyStatus.remains, 'of', pair.counter, 'from', buyExch, 'to', sellExch, 'to wallet', sellWallet)
-  tgLog('*transfering*', buySize - buyStatus.remains, 'of', pair.counter, 'from', buyExch, 'to', sellExch, 'to wallet', sellWallet)
-  const transferStatus = await exec.transferFunds(buyExch, sellExch, buySize - buyStatus.remains, pair.counter, sellWallet)
+  console.log('transfering', buySize - buyStatus.remains, 'of', pair.counter, 'from', buyExch, 'to', sellExch)
+  tgLog('*transfering*', buySize - buyStatus.remains, 'of', pair.counter, 'from', buyExch, 'to', sellExch)
+  const transferStatus = await exec.transferFunds(buyExch, sellExch, buySize - buyStatus.remains, pair.counter)
   if (!transferStatus.ack) {
     console.error('can\'t withdraw funds from', buyExch, 'to', sellExch,
       'details:', transferStatus)
@@ -127,9 +107,9 @@ async function syncExec (buyPrice, sellPrice, buySize, sellSize, buyExch, sellEx
   // transfer usdt form bitf to btrx
   // consider using 3.3x rule
   const usdtSize = sellSize * buyPrice - sellStatus.remains
-  console.log('backtransferring', usdtSize, 'of', pair.base, 'from', sellExch, 'to', buyExch, 'to wallet', buyWallet)
-  tgLog('*backtransferring*', usdtSize, 'of', pair.base, 'from', sellExch, 'to', buyExch, 'to wallet', buyWallet)
-  const backtransferStatsu = await exec.transferFunds(sellExch, buyExch, usdtSize, pair.base, buyWallet)
+  console.log('backtransferring', usdtSize, 'of', pair.base, 'from', sellExch, 'to', buyExch)
+  tgLog('*backtransferring*', usdtSize, 'of', pair.base, 'from', sellExch, 'to', buyExch)
+  const backtransferStatsu = await exec.transferFunds(sellExch, buyExch, usdtSize, pair.base)
   if (!backtransferStatsu.ack) {
     console.error('can\'t withdraw funds from', sellExch, 'to',
       buyExch, 'details', backtransferStatsu)
