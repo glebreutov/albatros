@@ -20,7 +20,7 @@ function calcBookAmount2 (v, money) {
         acc.size += v.size
         acc.moneyRemains -= levelCost
       } else {
-        acc.size += v.price / acc.moneyRemains
+        acc.size += acc.moneyRemains / v.price
         acc.moneyRemains = 0
       }
     }
@@ -75,9 +75,9 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
   const orderVol = Math.min(buySize, sellSize)
 
   // just getting worse prices from all prices to match all volume
-  const buyPrice = profitableBuyDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0)
+  const buyPrice = profitableBuyDepth.map(x => x.price).reduce((acc, val) => Math.min(acc, val), Number.MAX_SAFE_INTEGER)
   log(`limit buy ${buyPrice}`)
-  const sellPrice = profitableSellDepth.map(x => x.price).reduce((acc, val) => Math.min(acc, val), Number.MAX_SAFE_INTEGER)
+  const sellPrice = profitableSellDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0)
   log(`limit short ${sellPrice}`)
   const sellAmt = sellPrice * orderVol
   const buyAmt = buyPrice * orderVol
@@ -85,6 +85,8 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
   const perc = val(buyDepth[0].price, sellDepth[0].price)
   return {
     profit: sellAmt * (1 - sellFee) - buyAmt * (1 + buyFee) - buyWithdrawal * buyPrice - sellWithdrawal,
+    rawProfit: sellAmt - buyAmt,
+    profitDescribe: `${sellAmt} * (1 - ${sellFee}) - ${buyAmt} * (1 + ${buyFee}) - ${buyWithdrawal} * ${buyPrice} - ${sellWithdrawal}`,
     sellAmt: sellAmt * (1 - sellFee),
     buyAmt: buyAmt * (1 + buyFee),
     volume: orderVol,

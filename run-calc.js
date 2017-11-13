@@ -143,6 +143,8 @@ async function syncExec (buyPrice, sellPrice, size, buyExch, sellExch, pair) {
 }
 
 let execInProgress = false
+let prevSendTime = 0
+let prevArb = null
 async function calc (book1, book2, buyExchName, sellExchName, pair) {
   if (execInProgress) {
     return
@@ -170,6 +172,18 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
       process.exit()
       // await exec.cancelAllOrders()
       execInProgress = false
+    }
+
+    function isWorthToPrint (res) {
+      return res.rawProfit > 0 &&
+        Date.now() - prevSendTime > 60000 &&
+        (!prevArb || res.rawProfit / Math.abs(prevArb.rawProfit - res.rawProfit) > 0.1)
+    }
+
+    if (isWorthToPrint(arbRes)) {
+      prevSendTime = Date.now()
+      prevArb = arbRes
+      tgLog(`raw profit is ${arbRes.rawProfit} clean profit is ${arbRes.profit} = ${arbRes.profitDescribe}`)
     }
     // console.log(arbRes)
   }
@@ -292,7 +306,7 @@ async function createTg (telegramBotToken, users) {
         }).join(' ')}`
         let sent = 0
         for (let i in users) {
-          await tg.sendMessage(users[i], str, {parse_mode: 'Markdown'})
+          await tg.sendMessage(users[i], str)
           sent += 1
         }
         if (sent && sent === users.length) {

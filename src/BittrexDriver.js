@@ -109,7 +109,7 @@ exports.waitForExec = async (order) => {
 
 const withdraw = async (assetId, amount, wallet) => {
   try {
-    const statusMsg = await req('account/withdraw', {assetId, amount, wallet})
+    const statusMsg = await req('account/withdraw', {currency: assetId, quantity: amount, address: wallet})
     return status(statusMsg.success, statusMsg)
   } catch (e) {
     return failed(e)

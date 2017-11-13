@@ -31,16 +31,20 @@ bittrexDriver.setKeys(config.BTRX.key, config.BTRX.secret)
 // bitf btc margin 1BhEFhyZSfjXyQE77NvV3bSVNG8JChKhio
 // btrx btc 18FjdmsHGBVDVpELEsXTRqtXD7K6rj4owt
 
+
+
 async function moveMoney () {
-  const forw = await exec.transferFunds('BITF', 'BTRX', '0.01', 'BTC', '18FjdmsHGBVDVpELEsXTRqtXD7K6rj4owt')
-  console.log(forw)
-  const backw = await exec.transferFunds('BTRX', 'BITF', '0.01', 'BTC', '1BhEFhyZSfjXyQE77NvV3bSVNG8JChKhio')
-  console.log(backw)
+  // const targetBalance = await exec.balance('BITF', 'ETH')
+  // console.log(targetBalance)
+  // const wallet = await exec.wallet('BITF', 'ETH')
+  // console.log(wallet)
+  // const transferStatus = await exec.transferFunds('BTRX', 'BITF', 2.1537663321524323, 'ETH', '0x3c8279d082e9d61bfc255d32153510796b063dad')
+  console.log(transferStatus)
 }
-async function test () {
-  const newVar = await exec.closePositions('BITF')
-  console.log(newVar)
-}
+// async function test () {
+//   const newVar = await exec.closePositions('BITF')
+//   console.log(newVar)
+// }
 
 // test().then()
 
