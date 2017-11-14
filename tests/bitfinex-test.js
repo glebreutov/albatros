@@ -19,11 +19,16 @@ const restApi = new BitfinexApi(key, secret, nonceGen)
 
 async function start () {
   debug('Starting test')
-
-  const a = await drv1.deposit(pairs.USDTBTC.counter)
-  const t = 1
-
   // let orders = await restApi.getActiveOrders()
+  //
+  // let book = await restApi.getOrderBook(pairs.USDTBTC)
+  // const tooHighPrice = _.max(book.bids.map(order => parseFloat(order.price))) + 1000
+  // const order = await drv1.newOrder(pairs.USDTBTC, tooHighPrice, 0.005, sides.ASK)
+  // await sleep(1000)
+  // // orders[0].id = orders[0].id.toString()
+  // const st = await drv1.orderStatus(order)
+  // const c1 = await drv1.cancel(order)
+  // const a = 1
   // // assert(orders.length === 0, 'There should be no orders at this point. WARNING: all orders will be cancelled now')
   //
   // const ws = await restApi.getWallets()

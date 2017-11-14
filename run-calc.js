@@ -287,7 +287,7 @@ async function createTg (telegramBotToken, users) {
         }).join(' ')}`
         let sent = 0
         for (let i in users) {
-          await tg.sendMessage(users[i], str)
+          await tg.sendMessage(users[i], str, {parse_mode: 'markdown'})
           sent += 1
         }
         if (sent && sent === users.length) {

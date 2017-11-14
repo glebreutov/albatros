@@ -35,6 +35,13 @@ exports.newOrder = async (pair, price, size, side) => {
         id: order.response.id.toString(),
         remains: order.response.remaining_amount && parseFloat(order.response.remaining_amount)
       }
+    } else {
+      return {
+        ...order,
+        pair,
+        ack: false,
+        error: 'No order id, see response'
+      }
     }
   } catch (e) {
     order.error = e
@@ -51,7 +58,7 @@ exports.cancel = async (order) => {
   try {
     return {
       ...order,
-      response: await api().cancelOrder(order.id),
+      response: await api().cancelOrder(parseInt(order.id)),
       ack: true
     }
   } catch (e) {
@@ -126,11 +133,14 @@ exports.balance = async (assetId) => {
  */
 exports.orderStatus = async (order) => {
   try {
-    const orderStatus = await api().getOrderStatus(order.id)
+    const orderStatus = await api().getOrderStatus(parseInt(order.id))
+    if (!orderStatus.remaining_amount && orderStatus.remaining_amount !== 0) {
+      throw new Error(`Unexpected remaining_amount in response: ${orderStatus.remaining_amount}`)
+    }
     return {
       ...order,
       response: orderStatus,
-      remains: orderStatus.remaining_amount && parseFloat(orderStatus.remaining_amount),
+      remains: parseFloat(orderStatus.remaining_amount),
       ack: true
     }
   } catch (e) {
