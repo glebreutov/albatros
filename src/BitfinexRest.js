@@ -19,8 +19,8 @@ const pairConverter = createConverter(pairDict)
 const assetDict = []
 Object.keys(pairs).map(pairKey => {
   const pair = pairs[pairKey]
-  assetDict.push({normal: pair.base, specific: pair.base})
-  assetDict.push({normal: pair.counter, specific: pair.counter.replace('DASH', 'DSH')})
+  assetDict.push({normal: pair.base, specific: pair.base.toLowerCase()})
+  assetDict.push({normal: pair.counter, specific: pair.counter.replace('DASH', 'DSH').toLowerCase()})
 })
 
 const assetConverter = createConverter(assetDict)
