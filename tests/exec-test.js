@@ -4,6 +4,7 @@ const {pairs, exchanges} = require('../src/const')
 const bitfinexDriver = require('../src/BitfinexDriver')
 const bittrexDriver = require('../src/BittrexDriver')
 const createNonceGenerator = require('../src/createNonceGenerator')
+const sleep = require('../src/tools').sleep
 
 const config = {
   BITF: {
@@ -36,10 +37,13 @@ bittrexDriver.setKeys(config.BTRX.key, config.BTRX.secret)
 async function moveMoney () {
   // const targetBalance = await exec.balance('BITF', 'ETH')
   // console.log(targetBalance)
-  const walletBitf = await exec.wallet('BITF', 'ETH')
-  console.log({walletBitf})
-  const walletBtrx = await exec.wallet('BTRX', 'BTC')
-  console.log({walletBtrx})
+  const arr = ['BTC', 'ETH', 'LTC', 'ETC', 'ZEC', 'DASH', 'OMG', 'BCH', 'NEO']
+  for(let i in arr){
+    const e = arr[i]
+    const walletBtrx = await exec.wallet('BTRX', e)
+    console.log(e, walletBtrx.wallet)
+    await sleep(500)
+  }
   // console.log(wallet)
   // const transferStatus = await exec.transferFunds('BTRX', 'BITF', 2.1537663321524323, 'ETH', '0x3c8279d082e9d61bfc255d32153510796b063dad')
   // console.log(transferStatus)

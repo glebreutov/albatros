@@ -151,7 +151,7 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
       await tgLog(`going to get some money calculated profit: ${arbRes.profit}`)
       const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.buySize, arbRes.shortSize, buyExchName, sellExchName, pair)
       // await exec.cancelAllOrders()
-      // execInProgress = false
+      execInProgress = false
       process.exit()
     }
 
@@ -164,7 +164,7 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
     if (isWorthToPrint(arbRes)) {
       prevSendTime = Date.now()
       prevArb = arbRes
-      tgLog(`BITF ASK: ${arbRes.sell}, BTRX BID: ${arbRes.buy}. Raw profit is ${arbRes.rawProfit} clean profit is ${arbRes.profit}`)
+      tgLog(`${pair.counter} BITF ASK: ${arbRes.sell}, BTRX BID: ${arbRes.buy}. Raw profit is ${arbRes.rawProfit} clean profit is ${arbRes.profit}`)
     }
     // console.log(arbRes)
   }
