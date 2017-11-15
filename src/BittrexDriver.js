@@ -11,6 +11,13 @@ exports.setKeys = (key, secret) => {
   apiSecret = secret
 }
 
+function adaptCurrency (currency) {
+  if (currency === 'BCH') {
+    return 'BCC'
+  }
+  return currency
+}
+
 function failed (error) {
   return {ack: false, error}
 }
@@ -33,7 +40,7 @@ async function newOrder (pair, price, size, side) {
       return failed('no margin trading on bittrex')
     }
     const urlSuffix = (side === sides.ASK) ? 'market/selllimit' : 'market/buylimit'
-    const strPair = pair.base + '-' + pair.counter
+    const strPair = adaptCurrency(pair.base) + '-' + adaptCurrency(pair.counter)
     const json = await req(urlSuffix, {market: strPair, quantity: size, rate: price})
     if (json.success) {
       return ok({pair, id: json.result.uuid, exch: 'BTRX'})
@@ -46,11 +53,11 @@ async function newOrder (pair, price, size, side) {
 }
 exports.newOrder = newOrder
 exports.openShortPosition = async (assetId, size) => {
-  return openPosition(assetId, size, position.SHORT)
+  return openPosition(adaptCurrency(assetId), size, position.SHORT)
 }
 
 exports.openLongPosition = async (assetId, size) => {
-  return openPosition(assetId, size, position.LONG)
+  return openPosition(adaptCurrency(assetId), size, position.LONG)
 }
 
 exports.closePositions = async (pos) => {
@@ -109,7 +116,7 @@ exports.waitForExec = async (order) => {
 
 const withdraw = async (assetId, amount, wallet) => {
   try {
-    const statusMsg = await req('account/withdraw', {currency: assetId, quantity: amount, address: wallet})
+    const statusMsg = await req('account/withdraw', {currency: adaptCurrency(assetId), quantity: amount, address: wallet})
     return status(statusMsg.success, statusMsg)
   } catch (e) {
     return failed(e)
@@ -123,7 +130,7 @@ exports.balance = async (assetId) => {
     if (!resp.success) {
       return failed(resp)
     }
-    const curr = resp.result.filter(x => x.Currency === assetId).map(x => x.Balance)
+    const curr = resp.result.filter(x => x.Currency === adaptCurrency(assetId)).map(x => x.Balance)
     if (curr.length !== 1) {
       return failed('cant find currency with id ' + assetId)
     } else {
@@ -137,7 +144,7 @@ exports.balance = async (assetId) => {
 
 exports.wallet = async (currency) => {
   try {
-    const resp = await req('account/getdepositaddress', {currency})
+    const resp = await req('account/getdepositaddress', {currency: adaptCurrency(currency)})
     if (!resp.success) {
       return failed(resp)
     } else {

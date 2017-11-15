@@ -135,7 +135,7 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
   const buyFees = fees.getFees(buyExchName)
   const sellFees = fees.getFees(sellExchName)
   // const buyBalance = exec.balance(buyExchName, pair.base)
-  const buyBalance = 0.1
+  const buyBalance = 0.6
 
   if (buyDepth.length > 5 && sellDepth.length > 5) {
     const arbRes = calculate(buyDepth, sellDepth, buyFees.taker, sellFees.taker,
@@ -161,11 +161,11 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
         (!prevArb || res.rawProfit / Math.abs(prevArb.rawProfit - res.rawProfit) > 0.1)
     }
 
-    // if (isWorthToPrint(arbRes)) {
-    //   prevSendTime = Date.now()
-    //   prevArb = arbRes
-    //   tgLog(`raw profit is ${arbRes.rawProfit} clean profit is ${arbRes.profit} = ${arbRes.profitDescribe}`)
-    // }
+    if (isWorthToPrint(arbRes)) {
+      prevSendTime = Date.now()
+      prevArb = arbRes
+      tgLog(`BITF ASK: ${arbRes.sell}, BTRX BID: ${arbRes.buy}. Raw profit is ${arbRes.rawProfit} clean profit is ${arbRes.profit}`)
+    }
     // console.log(arbRes)
   }
 }
