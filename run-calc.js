@@ -150,9 +150,9 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
       // await sleep(10 * 1000)
       await tgLog(`going to get some money calculated profit: ${arbRes.profit}`)
       const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.buySize, arbRes.shortSize, buyExchName, sellExchName, pair)
-      process.exit()
       // await exec.cancelAllOrders()
-      execInProgress = false
+      // execInProgress = false
+      process.exit()
     }
 
     function isWorthToPrint (res) {
@@ -216,11 +216,10 @@ function parseConfig () {
   const [bitfKey, bitfSecret] = process.env.BITF.split(':')
   const [btrxKey, btrxSecret] = process.env.BTRX.split(':')
   let [tgToken, tgUsers] = process.env.TG.split('!')
-  const pair = pairs[process.env.PAIR]
+  const pairs = process.env.PAIRS.split(',')
   assert(bitfKey && bitfSecret, 'env variable BITF should be API_KEY:API_SECRET')
   assert(btrxKey && btrxSecret, 'env variable BTRX should be API_KEY:API_SECRET')
   assert(tgToken && tgUsers, `env variable TG should be TELEGRAM_BOT_TOKEN!user_id1,user_id2`)
-  assert(pair, `env variable PAIR should be a valid pair, got ${process.env.PAIR} instead. Valid pairs are ${Object.keys(pairs).join(', ')}`)
   tgUsers = tgUsers.split(',')
   return {
     BITF: {
@@ -231,7 +230,7 @@ function parseConfig () {
       key: btrxKey,
       secret: btrxSecret
     },
-    pair,
+    pairs,
     tgToken,
     tgUsers
   }
@@ -303,7 +302,7 @@ async function createTg (telegramBotToken, users) {
 async function main () {
   const config = parseConfig()
 
-  pairsToSubscribe = _.pick(pairs, [process.env.PAIR])
+  pairsToSubscribe = _.pick(pairs, config.pairs)
   console.log(config)
 
   await createTg(config.tgToken, config.tgUsers)
@@ -317,27 +316,53 @@ async function main () {
   bitfinexDriver.setKeys(config.BITF.key, config.BITF.secret, nonceGen)
   bittrexDriver.setKeys(config.BTRX.key, config.BTRX.secret)
 
-  const {base, counter} = config.pair
-  const btfBalanceBase = await bitfinexDriver.balance(base)
-  checkAck(btfBalanceBase)
-  const btfBalanceCounter = await bitfinexDriver.balance(counter)
-  checkAck(btfBalanceCounter)
-  const btxBalanceBase = await bittrexDriver.balance(base)
-  checkAck(btxBalanceBase)
-  const btxBalanceCounter = await bittrexDriver.balance(counter)
-  checkAck(btxBalanceCounter)
-  const msg = `Calc started. Balance:
-  Bitfinex: ${btfBalanceBase.balance} ${base}, ${btfBalanceCounter.balance} ${counter},
-  Bittrex: ${btxBalanceBase.balance} ${base}, ${btxBalanceCounter.balance} ${counter}`
-  if (!await tgLog(msg)) {
-    console.log('could not send reporting message')
+  let balances = []
+  // TODO RATE LIMIT!
+  // for (let p in pairsToSubscribe) {
+  //   const {base, counter} = pairsToSubscribe[p]
+  //   balances = balances.concat([{
+  //     asset: base,
+  //     exchange: exchanges.BITFINEX,
+  //     balance: await bitfinexDriver.balance(base)
+  //   }, {
+  //     asset: counter,
+  //     exchange: exchanges.BITFINEX,
+  //     balance: await bitfinexDriver.balance(counter)
+  //   }, {
+  //     asset: base,
+  //     exchange: exchanges.BITTREX,
+  //     balance: await bittrexDriver.balance(base)
+  //   }, {
+  //     asset: counter,
+  //     exchange: exchanges.BITTREX,
+  //     balance: await bittrexDriver.balance(counter)
+  //   }])
+  // }
+  balances = balances.concat([{
+    asset: pairs.BTCETH.base,
+    exchange: exchanges.BITFINEX,
+    balance: await bitfinexDriver.balance(pairs.BTCETH.base)
+  }, {
+    asset: pairs.BTCETH.base,
+    exchange: exchanges.BITTREX,
+    balance: await bittrexDriver.balance(pairs.BTCETH.base)
+  }])
+
+  const err = _.find(balances, b => !b.balance.ack)
+  if (err) {
+    console.log('No ack from driver:', err.exchange, err.balance)
     process.exit(1)
   }
-}
 
-function checkAck (resp) {
-  if (!resp.ack) {
-    console.log('No ack from driver:', resp)
+  const msg = `Calc started. Balance:
+  *Bitfinex*: 
+    ${balances.filter(b => b.exchange === exchanges.BITFINEX && b.balance.balance).map(b => `${b.asset}: ${b.balance.balance}`).join('\n    ')}
+  *Bittrex*:
+    ${balances.filter(b => b.exchange === exchanges.BITTREX && b.balance.balance).map(b => `${b.asset}: ${b.balance.balance}`).join('\n    ')}
+  `
+
+  if (!await tgLog(msg)) {
+    console.log('could not send reporting message')
     process.exit(1)
   }
 }

@@ -1,6 +1,5 @@
 module.exports = {
   // normalized pairs: BASE-QUOTE
-  //BTC, LTC, ETH, ETC, ZEC, XMR, DSH, XRP, OMG, BCH, NEO
   pairs: {
     USDTBTC: {base: 'USDT', counter: 'BTC', display: 'USDT-BTC'},
     USDTLTC: {base: 'USDT', counter: 'LTC', display: 'USDT-LTC'},
@@ -14,7 +13,14 @@ module.exports = {
     USDTBCH: {base: 'USDT', counter: 'BCH', display: 'USDT-BCH'},
     USDTNEO: {base: 'USDT', counter: 'NEO', display: 'USDT-NEO'},
 
-    BTCETH: {base: 'BTC', counter: 'ETH', display: 'BTC-ETH'}
+    BTCETH: {base: 'BTC', counter: 'ETH', display: 'BTC-ETH'},
+    BTCLTC: {base: 'BTC', counter: 'LTC', display: 'BTC-LTC'},
+    BTCETC: {base: 'BTC', counter: 'ETC', display: 'BTC-ETC'},
+    BTCZEC: {base: 'BTC', counter: 'ZEC', display: 'BTC-ZEC'},
+    BTCDASH: {base: 'BTC', counter: 'DASH', display: 'BTC-DASH'},
+    BTCOMG: {base: 'BTC', counter: 'OMG', display: 'BTC-OMG'},
+    BTCBCH: {base: 'BTC', counter: 'BCH', display: 'BTC-BCH'},
+    BTCNEO: {base: 'BTC', counter: 'NEO', display: 'BTC-NEO'}
   },
   exchanges: {
     BITFINEX: 'BITF',
@@ -28,59 +34,5 @@ module.exports = {
   },
   position: {
     SHORT: 'SHORT', LONG: 'LONG'
-  },
-  bitfinexSymbols: [
-    'btcusd',
-    'ltcusd',
-    'ltcbtc',
-    'ethusd',
-    'ethbtc',
-    'etcbtc',
-    'etcusd',
-    'rrtusd',
-    'rrtbtc',
-    'zecusd',
-    'zecbtc',
-    'xmrusd',
-    'xmrbtc',
-    'dshusd',
-    'dshbtc',
-    'bccbtc',
-    'bcubtc',
-    'bccusd',
-    'bcuusd',
-    'xrpusd',
-    'xrpbtc',
-    'iotusd',
-    'iotbtc',
-    'ioteth',
-    'eosusd',
-    'eosbtc',
-    'eoseth',
-    'sanusd',
-    'sanbtc',
-    'saneth',
-    'omgusd',
-    'omgbtc',
-    'omgeth',
-    'bchusd',
-    'bchbtc',
-    'bcheth',
-    'neousd',
-    'neobtc',
-    'neoeth',
-    'etpusd',
-    'etpbtc',
-    'etpeth',
-    'qtmusd',
-    'qtmbtc',
-    'qtmeth',
-    'bt1usd',
-    'bt2usd',
-    'bt1btc',
-    'bt2btc',
-    'avtusd',
-    'avtbtc',
-    'avteth'
-  ]
+  }
 }

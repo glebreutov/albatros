@@ -4,24 +4,26 @@ const {assert, createConverter} = require('./tools')
 const _ = require('lodash')
 const {pairs, sides} = require('./const')
 
-const pairConverter = createConverter([{
-  normal: pairs.USDTBTC,
-  specific: 'BTCUSD'
-}, {
-  normal: pairs.BTCETH,
-  specific: 'ETHBTC'
-}])
 
-const assetConverter = createConverter([{
-  normal: pairs.USDTBTC.base,
-  specific: 'usd'
-}, {
-  normal: pairs.USDTBTC.counter,
-  specific: 'btc'
-}, {
-  normal: pairs.USDTETH.counter,
-  specific: 'eth'
-}])
+const pairDict = Object.keys(pairs).map(pairKey => {
+  const pair = pairs[pairKey]
+  const symbol = (pair.counter + pair.base).replace('USDT', 'USD').replace('DASH', 'DSH')
+  return {
+    normal: pair,
+    specific: symbol
+  }
+})
+
+const pairConverter = createConverter(pairDict)
+
+const assetDict = []
+Object.keys(pairs).map(pairKey => {
+  const pair = pairs[pairKey]
+  assetDict.push({normal: pair.base, specific: pair.base})
+  assetDict.push({normal: pair.counter, specific: pair.counter.replace('DASH', 'DSH')})
+})
+
+const assetConverter = createConverter(assetDict)
 
 const sideConverter = createConverter([{
   normal: sides.BID,
@@ -41,16 +43,19 @@ function getOrderType (side) {
   return [sides.SHORT, sides.LONG].includes(side) ? 'limit' : 'exchange limit'
 }
 
-const withdrawConverter = createConverter([{
-  normal: pairs.USDTETH.counter,
-  specific: 'ethereum'
-}, {
-  normal: pairs.USDTBTC.counter,
-  specific: 'bitcoin'
-}, {
-  normal: pairs.USDTBTC.base,
-  specific: 'tether'
-}])
+const withdrawConverter = createConverter([
+  {normal: pairs.USDTBTC.counter, specific: 'bitcoin'},
+  {normal: pairs.USDTBTC.base, specific: 'tether'},
+
+  {normal: pairs.BTCETH.counter, specific: 'ethereum'},
+  {normal: pairs.BTCLTC.counter, specific: 'litecoin'},
+  {normal: pairs.BTCETC.counter, specific: 'ethereumc'},
+  {normal: pairs.BTCZEC.counter, specific: 'zcash'},
+  {normal: pairs.BTCDASH.counter, specific: 'dash'},
+  {normal: pairs.BTCOMG.counter, specific: 'omisego'},
+  {normal: pairs.BTCBCH.counter, specific: 'bcash'},
+  {normal: pairs.BTCNEO.counter, specific: 'neo'}
+])
 
 class BitfinexRest {
   constructor (apiKey, apiSecret, nonceGenerator) {
@@ -130,16 +135,16 @@ class BitfinexRest {
     }
   }
 
-  async loan (assetId, size) {
-    const params = {
-      currency: assetConverter.denormalize(assetId),
-      amount: size.toString(),
-      rate: '0',
-      period: 1,
-      direction: 'loan'
-    }
-    return this.authRequest('offer/new', params)
-  }
+  // async loan (assetId, size) {
+  //   const params = {
+  //     currency: assetConverter.denormalize(assetId),
+  //     amount: size.toString(),
+  //     rate: '0',
+  //     period: 1,
+  //     direction: 'loan'
+  //   }
+  //   return this.authRequest('offer/new', params)
+  // }
 
   async credits () {
     return this.authRequest('credits')

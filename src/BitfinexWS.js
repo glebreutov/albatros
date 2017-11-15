@@ -3,7 +3,7 @@ const WebSocket = require('ws')
 const EventEmitter = require('events')
 const {bind, assert, createConverter} = require('./tools')
 const _ = require('lodash')
-const {pairs, bitfinexSymbols} = require('./const')
+const {pairs} = require('./const')
 const debug = require('debug')('BitfinexApi')
 
 const wsEndpoint = 'wss://api.bitfinex.com/ws/2'
