@@ -135,7 +135,7 @@ exports.orderStatus = async (order) => {
   try {
     const orderStatus = await api().getOrderStatus(parseInt(order.id))
     if (!orderStatus.remaining_amount && orderStatus.remaining_amount !== 0) {
-      throw new Error(`Unexpected remaining_amount in response: ${orderStatus.remaining_amount}`)
+      throw new Error(`Unexpected remaining_amount in response: ${orderStatus.remaining_amount}, full response ${JSON.stringify(orderStatus)}`)
     }
     return {
       ...order,
