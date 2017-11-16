@@ -1,3 +1,4 @@
+const now = require('performance-now')
 const BitfinexApi = require('./src/BitfinexWS')
 const bitfinexDriver = require('./src/BitfinexDriver')
 const BitfinexRest = require('./src/BitfinexRest')
@@ -142,8 +143,8 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
       console.log(arbRes)
 
       execInProgress = true
-      //await tgLog(`going to get some money calculated profit: ${arbRes.profit}`)
-      const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.buySize, arbRes.shortSize, buyExchName, sellExchName, pair)
+      await tgLog(`going to get some money calculated profit: ${arbRes.profit}`)
+      //const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.buySize, arbRes.shortSize, buyExchName, sellExchName, pair)
       execInProgress = false
       process.exit()
     }
@@ -165,6 +166,7 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
 
 const bitfinexBooks = {}
 function onBitfinexBookUpdate (pair, data) {
+  let st = now()
   bitfinexBooks.lastUpdated = Date.now()
   const bitfinexBook = bitfinexBooks[pair.display]
   bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[2] < 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
@@ -182,11 +184,16 @@ function onBitfinexBookUpdate (pair, data) {
     reconnectBittrexWs(onBittrexBookUpdate)
     return
   }
+  const s1 = now() - st
+  st = now()
   calc(bittrexBook, bitfinexBook, exchanges.BITTREX, exchanges.BITFINEX, pair).then()
+  const s2 = now() - st
+  console.log(`onBitfinexBookUpdate: ${s1.toFixed(2)} ms for books + ${s2.toFixed(2)} ms for calc`)
 }
 
 const bittrexBooks = {}
 function onBittrexBookUpdate (pair, data) {
+  let st = now()
   bittrexBooks.lastUpdated = Date.now()
   const bittrexBook = bittrexBooks[pair.display]
   bittrexBook.updateLevels(sides.ASK, data.sell.map(d => [d.Rate, d.Quantity]))
@@ -202,7 +209,12 @@ function onBittrexBookUpdate (pair, data) {
     reconnectBitfinexWs(onBitfinexBookUpdate)
     return
   }
+  const s1 = now() - st
+  st = now()
   calc(bittrexBook, bitfinexBook, exchanges.BITTREX, exchanges.BITFINEX, pair).then()
+  const s2 = now() - st
+  calc(bittrexBook, bitfinexBook, exchanges.BITTREX, exchanges.BITFINEX, pair).then()
+  console.log(`onBitfinexBookUpdate: ${s1.toFixed(2)} ms for books + ${s2.toFixed(2)} ms for calc`)
 }
 
 function parseConfig () {
