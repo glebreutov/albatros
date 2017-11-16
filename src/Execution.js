@@ -70,11 +70,11 @@ exports.transferFunds = async (from, to, amount, assetId) => {
     return walletMessage
   }
   const toWallet = walletMessage.wallet
-  const correctBitfAddr = to === 'BITF' && assetId === 'ETH' && toWallet === '0x3c8279d082e9d61bfc255d32153510796b063dad'
-  const correctBtrxAddr = to === 'BTRX' && assetId === 'BTC' && toWallet === '18FjdmsHGBVDVpELEsXTRqtXD7K6rj4owt'
-  if (!correctBitfAddr && !correctBtrxAddr) {
-    return {ack: false, result: {to, assetId, toWallet}, message: `Not correct addess. Inner check`}
-  }
+  // const correctBitfAddr = to === 'BITF' && assetId === 'ETH' && toWallet === '0x3c8279d082e9d61bfc255d32153510796b063dad'
+  // const correctBtrxAddr = to === 'BTRX' && assetId === 'BTC' && toWallet === '18FjdmsHGBVDVpELEsXTRqtXD7K6rj4owt'
+  // if (!correctBitfAddr && !correctBtrxAddr) {
+  //   return {ack: false, result: {to, assetId, toWallet}, message: `Not correct addess. Inner check`}
+  // }
   const withdrawStatus = await withdraw(from, assetId, amount, toWallet)
   if (!withdrawStatus.ack) {
     return withdrawStatus

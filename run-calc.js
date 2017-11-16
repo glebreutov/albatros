@@ -19,7 +19,7 @@ function adaptBook (book, side) {
 }
 
 function profitTreshold (arbRes) {
-  return arbRes.profit > 0
+  return arbRes.profit >= 0.0001
 }
 
 // ws apis
@@ -40,25 +40,22 @@ async function getRemainsAndCancel (order) {
 }
 
 async function syncExec (buyPrice, sellPrice, buySize, sellSize, buyExch, sellExch, pair) {
-  console.log('input', {buyPrice, sellPrice, buySize, sellSize, buyExch, sellExch, pair})
-  // sell loaned btc on bitf. price lock!
-  console.log('shorting', sellSize, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
-  tgLog('*shorting*', sellSize, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
-  const sellOrder = await exec.short(sellExch, pair, sellPrice, sellSize)
+  const shortPromise = exec.short(sellExch, pair, sellPrice, sellSize)
+  const buyPromise = exec.buy(buyExch, pair, buyPrice, buySize)
+
+  const sellOrder = await shortPromise
   if (!sellOrder.ack) {
     console.error('can\'t short', sellOrder)
     return false
   }
-  // buy btc on btrx
-  console.log('buying', buySize, 'of', pair, 'at', buyExch, 'at price', buyPrice)
-  tgLog('*buying*', buySize, 'of', pair, 'at', buyExch, 'at price', buyPrice)
-  const buyOrder = await exec.buy(buyExch, pair, buyPrice, buySize)
+  const buyOrder = await buyPromise
   if (!buyOrder.ack) {
     console.error('can\'t buy', buyOrder)
     tgLog('*can\'t buy*', buyOrder)
     return false
   }
-
+  tgLog('*shorting*', sellSize, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
+  tgLog('*buying*', buySize, 'of', pair, 'at', buyExch, 'at price', buyPrice)
   await sleep(10000)
   console.log('check remaining and cancel buy order', buyOrder)
   tgLog('*check remaining* and cancel buy order', buyOrder)
@@ -145,26 +142,22 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
       console.log(arbRes)
 
       execInProgress = true
-      // tgLog('DEMO MODE, syncExec is commented out')
-      // tgLog(JSON.stringify(arbRes, null, 2))
-      // await sleep(10 * 1000)
-      await tgLog(`going to get some money calculated profit: ${arbRes.profit}`)
+      //await tgLog(`going to get some money calculated profit: ${arbRes.profit}`)
       const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.buySize, arbRes.shortSize, buyExchName, sellExchName, pair)
-      // await exec.cancelAllOrders()
       execInProgress = false
       process.exit()
     }
 
     function isWorthToPrint (res) {
-      return res.rawProfit > 0 &&
+      return res.profit > 0 &&
         Date.now() - prevSendTime > 60000 &&
-        (!prevArb || res.rawProfit / Math.abs(prevArb.rawProfit - res.rawProfit) > 0.1)
+        (!prevArb || res.profit / Math.abs(prevArb.profit - res.profit) > 0.1)
     }
 
     if (isWorthToPrint(arbRes)) {
       prevSendTime = Date.now()
       prevArb = arbRes
-      tgLog(`${pair.counter} BITF ASK: ${arbRes.sell}, BTRX BID: ${arbRes.buy}. Raw profit is ${arbRes.rawProfit} clean profit is ${arbRes.profit}`)
+      tgLog(`${pair.counter} BITF ASK: ${arbRes.sell}, BTRX BID: ${arbRes.buy}. Clean profit is ${arbRes.profit}`)
     }
     // console.log(arbRes)
   }
