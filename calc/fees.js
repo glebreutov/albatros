@@ -1,6 +1,6 @@
 const feeMap = {
   BITF: {
-    taker: 0.0024,
+    taker: 0.004,
     maker: 0,
     withdrawal: {
       BTC: 0.0005,

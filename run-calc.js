@@ -19,7 +19,7 @@ function adaptBook (book, side) {
 }
 
 function profitTreshold (arbRes) {
-  return arbRes.profit >= 0.0001
+  return arbRes.profit >= 0.0005
 }
 
 // ws apis
@@ -45,6 +45,7 @@ async function syncExec (buyPrice, sellPrice, buySize, sellSize, buyExch, sellEx
 
   const sellOrder = await shortPromise
   if (!sellOrder.ack) {
+    tgLog('*can\'t short*', sellOrder)
     console.error('can\'t short', sellOrder)
     return false
   }
@@ -63,8 +64,8 @@ async function syncExec (buyPrice, sellPrice, buySize, sellSize, buyExch, sellEx
   console.log('remaining: ', buyStatus)
   tgLog('*remaining*: ', buyStatus)
   if (!buyStatus.ack) {
-    console.log('can\'t get but order status', buyStatus)
-    tgLog('*can\'t get but order status*', buyStatus)
+    console.log('can\'t get buy order status', buyStatus)
+    tgLog('*can\'t get buy order status*', buyStatus)
     return false
   }
   console.log('check remaining and cancel sell order', sellOrder)
@@ -73,8 +74,8 @@ async function syncExec (buyPrice, sellPrice, buySize, sellSize, buyExch, sellEx
   console.log('remaining:', sellStatus)
   tgLog('*remaining*:', sellStatus)
   if (!sellStatus.ack) {
-    console.log('can\'t get but order status', sellStatus)
-    tgLog('*can\'t get but order status*', sellStatus)
+    console.log('can\'t get sell order status', sellStatus)
+    tgLog('*can\'t get sell order status*', sellStatus)
     return false
   }
 
@@ -132,7 +133,7 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
   const buyFees = fees.getFees(buyExchName)
   const sellFees = fees.getFees(sellExchName)
   // const buyBalance = exec.balance(buyExchName, pair.base)
-  const buyBalance = 0.6
+  const buyBalance = 0.5
 
   if (buyDepth.length > 5 && sellDepth.length > 5) {
     const arbRes = calculate(buyDepth, sellDepth, buyFees.taker, sellFees.taker,

@@ -46,7 +46,7 @@ function calcBuySize (depth, amount) {
 function log (message) {
   // console.log(message)
 }
-
+const PRECISION = 3
 function calculate (buyDepth, sellDepth, buyFee, sellFee,
                     buyWithdrawal, sellWithdrawal, buyBalance, pair) {
   // calculating profitable diff
@@ -78,8 +78,8 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
   log(`limit buy ${buyPrice}`)
   const sellPrice = profitableSellDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0)
   log(`limit short ${sellPrice}`)
-  const buyVol = orderVol
-  const shortVol = orderVol - buyWithdrawal
+  const buyVol = parseFloat(orderVol.toFixed(PRECISION))
+  const shortVol = parseFloat((orderVol - buyWithdrawal).toFixed(PRECISION))
   const shortAmt = sellPrice * shortVol
   const buyAmt = buyPrice * buyVol
 
@@ -97,8 +97,8 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
     spread: sellPrice - buyPrice,
     buy: buyPrice,
     sell: sellPrice,
-    arbBuy: profitableBuyDepth.map(x => x.price).reduce((a, c) => (!isNaN(a) && a < c) ? a : c, NaN),
-    arbSell: profitableSellDepth.map(x => x.price).reduce((a, c) => (!isNaN(a) && a > c) ? a : c, NaN)
+    arbBuy: profitableBuyDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0),
+    arbSell: profitableSellDepth.map(x => x.price).reduce((acc, val) => Math.min(acc, val), Number.MAX_SAFE_INTEGER)
   }
 }
 
