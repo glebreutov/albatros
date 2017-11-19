@@ -1,16 +1,5 @@
-function calcBookAmount (v, dealVolume) {
-  return v.reduce((acc, v) => {
-    if (acc.takenVolume <= dealVolume) {
-      let size = v.size
-      if (acc.takenVolume + v.size > dealVolume) {
-        size = dealVolume - acc.takenVolume
-      }
-      acc.takenVolume += size
-      acc.amount += (size * v.price)
-    }
-    return acc
-  }, {takenVolume: 0, amount: 0})
-}
+const Decimal = require('decimal.js')
+
 function calcBookAmount2 (v, money) {
   const start = {moneyRemains: money, size: 0}
   const accumFx = (acc, v) => {
@@ -82,7 +71,7 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
 
   }
   const buyVol = orderSize(orderVol, pair, buyWithdrawal)
-  const shortVol = parseFloat((orderVol - buyWithdrawal).toFixed(PRECISION))
+  const shortVol = parseFloat((buyVol - buyWithdrawal).toFixed(PRECISION))
   const shortAmt = sellPrice * shortVol
   const buyAmt = buyPrice * buyVol
 
@@ -117,5 +106,4 @@ function orderSize (size, pair, withdrawalFee) {
     return parseFloat(size.toFixed(PRECISION))
   }
 }
-
 exports.calculate = calculate
