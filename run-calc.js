@@ -57,7 +57,7 @@ async function syncExec (buyPrice, sellPrice, buySize, sellSize, buyExch, sellEx
   }
   tgLog('*shorting*', sellSize, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
   tgLog('*buying*', buySize, 'of', pair, 'at', buyExch, 'at price', buyPrice)
-  await sleep(10000)
+  await sleep(100000)
   console.log('check remaining and cancel buy order', buyOrder)
   tgLog('*check remaining* and cancel buy order', buyOrder)
   const buyStatus = await getRemainsAndCancel(buyOrder)
@@ -133,7 +133,7 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
   const buyFees = fees.getFees(buyExchName)
   const sellFees = fees.getFees(sellExchName)
   // const buyBalance = exec.balance(buyExchName, pair.base)
-  const buyBalance = 0.5
+  const buyBalance = 0.6
 
   if (buyDepth.length > 5 && sellDepth.length > 5) {
     const arbRes = calculate(buyDepth, sellDepth, buyFees.taker, sellFees.taker,

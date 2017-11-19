@@ -78,7 +78,10 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
   log(`limit buy ${buyPrice}`)
   const sellPrice = profitableSellDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0)
   log(`limit short ${sellPrice}`)
-  const buyVol = parseFloat(orderVol.toFixed(PRECISION))
+  if (pair.counter === 'NEO') {
+
+  }
+  const buyVol = orderSize(orderVol, pair, buyWithdrawal)
   const shortVol = parseFloat((orderVol - buyWithdrawal).toFixed(PRECISION))
   const shortAmt = sellPrice * shortVol
   const buyAmt = buyPrice * buyVol
@@ -90,7 +93,7 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
     profitDescribe: `${shortAmt} * (1 - ${sellFee}) - ${buyAmt} * (1 + ${buyFee}) - ${buyWithdrawal} * ${buyPrice} - ${sellWithdrawal}`,
     sellAmt: shortAmt * (1 - sellFee),
     buyAmt: buyAmt * (1 + buyFee),
-    //volume: orderVol,
+    // volume: orderVol,
     buySize: buyVol,
     shortSize: shortVol,
     perc: perc,
@@ -99,6 +102,19 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
     sell: sellPrice,
     arbBuy: profitableBuyDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0),
     arbSell: profitableSellDepth.map(x => x.price).reduce((acc, val) => Math.min(acc, val), Number.MAX_SAFE_INTEGER)
+  }
+}
+
+function orderSize (size, pair, withdrawalFee) {
+  if (pair.counter === 'NEO') {
+    const newSize = parseFloat(size.toFixed(0)) + withdrawalFee
+    if (newSize <= size) {
+      return newSize
+    } else {
+      return parseFloat(size.toFixed(0)) + withdrawalFee - 1
+    }
+  } else {
+    return parseFloat(size.toFixed(PRECISION))
   }
 }
 
