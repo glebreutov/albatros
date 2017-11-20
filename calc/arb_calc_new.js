@@ -34,7 +34,8 @@ function calcBuySize (depth, amount) {
 
 function calcAmount (depth, size, amount = 0) {
   if (size < 0) {
-    throw new Error('function has bug, size cannot be less than zero')
+    // console.log('function has bug, size cannot be less than zero', size)
+    return 0
   }
   if (depth.length === 0 || size === 0) {
     return amount
@@ -80,30 +81,35 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
   // getting deal size
   const orderVol = Math.min(buySize, sellSize)
 
-  // const buyPrice = profitableBuyDepth.map(x => x.price).reduce((acc, val) => Math.min(acc, val), Number.MAX_SAFE_INTEGER)
+  const buyPrice = profitableBuyDepth.map(x => x.price).reduce((acc, val) => Math.min(acc, val), Number.MAX_SAFE_INTEGER)
   // log(`limit buy ${buyPrice}`)
-  // const sellPrice = profitableSellDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0)
+  const sellPrice = profitableSellDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0)
   // log(`limit short ${sellPrice}`)
 
   const buyVol = orderSize(orderVol, pair, buyWithdrawal)
   const shortVol = parseFloat((buyVol - buyWithdrawal).toFixed(PRECISION))
-  const shortAmt = calcAmount(profitableBuyDepth, shortVol)
-  const buyAmt = calcAmount(profitableSellDepth, buyVol)
-
-  const perc = val(buyDepth[0].price, sellDepth[0].price)
+  // console.log('order vol', orderVol)
+  // console.log('buy vol', buyVol)
+  // console.log('short vol', shortVol)
+  const shortAmt = calcAmount(profitableSellDepth, shortVol)
+  const buyAmt = calcAmount(profitableBuyDepth, buyVol)
+  // console.log('buy amt', buyAmt)
+  const profit = shortAmt * (1 - sellFee) - buyAmt * (1 + buyFee) - sellWithdrawal
+  // console.log('short amt', shortAmt)
+  const perc = (profit / (shortAmt / 100)).toFixed(4)
   return {
-    profit: shortAmt * (1 - sellFee) - buyAmt * (1 + buyFee) - sellWithdrawal,
+    profit: parseFloat(profit.toFixed(5)),
     rawProfit: shortAmt - buyAmt,
-    profitDescribe: `${shortAmt} * (1 - ${sellFee}) - ${buyAmt} * (1 + ${buyFee}) - ${buyWithdrawal} * ${buyPrice} - ${sellWithdrawal}`,
+    // profitDescribe: `${shortAmt} * (1 - ${sellFee}) - ${buyAmt} * (1 + ${buyFee}) - ${buyWithdrawal} * ${buyPrice} - ${sellWithdrawal}`,
     sellAmt: shortAmt * (1 - sellFee),
     buyAmt: buyAmt * (1 + buyFee),
     // volume: orderVol,
     buySize: buyVol,
     shortSize: shortVol,
     perc: perc,
-    // spread: sellPrice - buyPrice,
-    // buy: buyPrice,
-    // sell: sellPrice,
+    spread: sellPrice - buyPrice,
+    buy: buyPrice,
+    sell: sellPrice,
     arbBuy: profitableBuyDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0),
     arbSell: profitableSellDepth.map(x => x.price).reduce((acc, val) => Math.min(acc, val), Number.MAX_SAFE_INTEGER)
   }
@@ -121,7 +127,10 @@ exports.verifyArbResults = (arb) => {
 }
 
 function checkSaneNumber (price) {
-  return typeof price === 'number' && price > 0 && price < Number.MAX_SAFE_INTEGER
+  return typeof price === 'number' &&
+    !isNaN(price) &&
+    price > 0 &&
+    price < Number.MAX_SAFE_INTEGER
 }
 
 function checkSize (size, currency) {
@@ -141,7 +150,7 @@ function orderSize (size, pair, withdrawalFee) {
     const newSizeDown = parseFloat(size.toFixed(0)) + withdrawalFee - 1
     if (newSizeUp <= size) {
       return newSizeUp
-    } else if (newSizeDown > 0) {
+    } else if (newSizeDown > withdrawalFee) {
       return newSizeDown
     } else {
       return 0
