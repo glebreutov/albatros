@@ -4,7 +4,6 @@ const {assert, createConverter} = require('./tools')
 const _ = require('lodash')
 const {pairs, sides} = require('./const')
 
-
 const pairDict = Object.keys(pairs).map(pairKey => {
   const pair = pairs[pairKey]
   const symbol = (pair.counter + pair.base).replace('USDT', 'USD').replace('DASH', 'DSH')
@@ -121,7 +120,7 @@ class BitfinexRest {
   }
 
   async positions () {
-    return this.authRequest('positions')
+    return (await this.authRequest('positions')).filter(p => p && p.id)
   }
 
   async claimPosition (id, amount) {
