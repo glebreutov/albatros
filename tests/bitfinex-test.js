@@ -19,6 +19,9 @@ const restApi = new BitfinexApi(key, secret, nonceGen)
 
 async function start () {
   debug('Starting test')
+
+  const t = await restApi.positions()
+  const a = 1
   // let orders = await restApi.getActiveOrders()
   //
   // let book = await restApi.getOrderBook(pairs.USDTBTC)
