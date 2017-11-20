@@ -7,6 +7,7 @@ const {pairs, sides, exchanges} = require('./src/const')
 const _ = require('lodash')
 const Book = require('./src/Book')
 const calculate = require('./calc/arb_calc_new').calculate
+const verifyArbResults = require('./calc/arb_calc_new').verifyArbResults
 const fees = require('./calc/fees')
 // const exec = require('./src/executionApi')
 const exec = require('./src/Execution')
@@ -20,7 +21,7 @@ function adaptBook (book, side) {
 }
 
 function profitTreshold (arbRes) {
-  return arbRes.profit >= 0.0001
+  return arbRes.profit >= 0.0005
 }
 
 // ws apis
@@ -46,6 +47,7 @@ async function syncExec (buyPrice, sellPrice, buySize, sellSize, buyExch, sellEx
 
   const sellOrder = await shortPromise
   if (!sellOrder.ack) {
+    tgLog('*can\'t short*', sellOrder)
     console.error('can\'t short', sellOrder)
     return false
   }
@@ -57,15 +59,15 @@ async function syncExec (buyPrice, sellPrice, buySize, sellSize, buyExch, sellEx
   }
   tgLog('*shorting*', sellSize, 'of', 'pair', 'at', sellExch, 'at price', sellPrice)
   tgLog('*buying*', buySize, 'of', pair, 'at', buyExch, 'at price', buyPrice)
-  await sleep(10000)
+  await sleep(100000)
   console.log('check remaining and cancel buy order', buyOrder)
   tgLog('*check remaining* and cancel buy order', buyOrder)
   const buyStatus = await getRemainsAndCancel(buyOrder)
   console.log('remaining: ', buyStatus)
   tgLog('*remaining*: ', buyStatus)
   if (!buyStatus.ack) {
-    console.log('can\'t get but order status', buyStatus)
-    tgLog('*can\'t get but order status*', buyStatus)
+    console.log('can\'t get buy order status', buyStatus)
+    tgLog('*can\'t get buy order status*', buyStatus)
     return false
   }
   console.log('check remaining and cancel sell order', sellOrder)
@@ -74,8 +76,8 @@ async function syncExec (buyPrice, sellPrice, buySize, sellSize, buyExch, sellEx
   console.log('remaining:', sellStatus)
   tgLog('*remaining*:', sellStatus)
   if (!sellStatus.ack) {
-    console.log('can\'t get but order status', sellStatus)
-    tgLog('*can\'t get but order status*', sellStatus)
+    console.log('can\'t get sell order status', sellStatus)
+    tgLog('*can\'t get sell order status*', sellStatus)
     return false
   }
 
@@ -138,15 +140,17 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
   if (buyDepth.length > 5 && sellDepth.length > 5) {
     const arbRes = calculate(buyDepth, sellDepth, buyFees.taker, sellFees.taker,
       buyFees.withdrawal[pair.counter], sellFees.withdrawal[pair.base], buyBalance, pair)
-    if (profitTreshold(arbRes)) {
+    if (profitTreshold(arbRes) && verifyArbResults(arbRes)) {
       console.log(new Date())
       console.log(arbRes)
 
       execInProgress = true
-      await tgLog(`going to get some money calculated profit: ${arbRes.profit}`)
+      // await tgLog(`going to get some money calculated profit: ${arbRes.profit}`)
       //const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.buySize, arbRes.shortSize, buyExchName, sellExchName, pair)
       execInProgress = false
       process.exit()
+    } else if (profitTreshold(arbRes) && !verifyArbResults(arbRes)) {
+      console.log('wrong arb calculation', arbRes)
     }
 
     function isWorthToPrint (res) {

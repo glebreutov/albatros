@@ -1,16 +1,5 @@
-function calcBookAmount (v, dealVolume) {
-  return v.reduce((acc, v) => {
-    if (acc.takenVolume <= dealVolume) {
-      let size = v.size
-      if (acc.takenVolume + v.size > dealVolume) {
-        size = dealVolume - acc.takenVolume
-      }
-      acc.takenVolume += size
-      acc.amount += (size * v.price)
-    }
-    return acc
-  }, {takenVolume: 0, amount: 0})
-}
+const Decimal = require('decimal.js')
+
 function calcBookAmount2 (v, money) {
   const start = {moneyRemains: money, size: 0}
   const accumFx = (acc, v) => {
@@ -46,7 +35,7 @@ function calcBuySize (depth, amount) {
 function log (message) {
   // console.log(message)
 }
-
+const PRECISION = 3
 function calculate (buyDepth, sellDepth, buyFee, sellFee,
                     buyWithdrawal, sellWithdrawal, buyBalance, pair) {
   // calculating profitable diff
@@ -78,8 +67,9 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
   log(`limit buy ${buyPrice}`)
   const sellPrice = profitableSellDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0)
   log(`limit short ${sellPrice}`)
-  const buyVol = orderVol
-  const shortVol = orderVol - buyWithdrawal
+
+  const buyVol = orderSize(orderVol, pair, buyWithdrawal)
+  const shortVol = parseFloat((buyVol - buyWithdrawal).toFixed(PRECISION))
   const shortAmt = sellPrice * shortVol
   const buyAmt = buyPrice * buyVol
 
@@ -90,16 +80,57 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
     profitDescribe: `${shortAmt} * (1 - ${sellFee}) - ${buyAmt} * (1 + ${buyFee}) - ${buyWithdrawal} * ${buyPrice} - ${sellWithdrawal}`,
     sellAmt: shortAmt * (1 - sellFee),
     buyAmt: buyAmt * (1 + buyFee),
-    //volume: orderVol,
+    // volume: orderVol,
     buySize: buyVol,
     shortSize: shortVol,
     perc: perc,
     spread: sellPrice - buyPrice,
     buy: buyPrice,
     sell: sellPrice,
-    arbBuy: profitableBuyDepth.map(x => x.price).reduce((a, c) => (!isNaN(a) && a < c) ? a : c, NaN),
-    arbSell: profitableSellDepth.map(x => x.price).reduce((a, c) => (!isNaN(a) && a > c) ? a : c, NaN)
+    arbBuy: profitableBuyDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0),
+    arbSell: profitableSellDepth.map(x => x.price).reduce((acc, val) => Math.min(acc, val), Number.MAX_SAFE_INTEGER)
   }
 }
 
+exports.verifyArbResults =  (arb) => {
+  return checkSaneNumber(arb.arbBuy) &&
+    checkSaneNumber(arb.arbSell) &&
+    checkSaneNumber(arb.buy) &&
+    checkSaneNumber(arb.sell) &&
+    checkSize(arb.buySize) &&
+    checkSize(arb.shortSize) &&
+    checkAmount(arb.buyAmt) &&
+    checkAmount(arb.sellAmt)
+}
+
+function checkSaneNumber (price) {
+  return typeof price === 'number' && price > 0 && price < Number.MAX_SAFE_INTEGER
+}
+
+function checkSize (size, currency) {
+  const saneNumber = checkSaneNumber(size)
+  const btcSize = size >= 0.01 && (['BTC', 'ZEC'].includes(currency))
+  const othersSize = size >= 0.1 && !['BTC', 'ZEC'].includes(currency)
+  return saneNumber && (btcSize || othersSize)
+}
+
+function checkAmount (amnt) {
+  return checkSaneNumber(amnt) && amnt >= 0.0005
+}
+
+function orderSize (size, pair, withdrawalFee) {
+  if (pair.counter === 'NEO') {
+    const newSizeUp = parseFloat(size.toFixed(0)) + withdrawalFee
+    const newSizeDown = parseFloat(size.toFixed(0)) + withdrawalFee - 1
+    if (newSizeUp <= size) {
+      return newSizeUp
+    } else if (newSizeDown > 0) {
+      return newSizeDown
+    } else {
+      return 0
+    }
+  } else {
+    return parseFloat(size.toFixed(PRECISION))
+  }
+}
 exports.calculate = calculate
