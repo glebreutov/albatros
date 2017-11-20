@@ -6,6 +6,7 @@ const {pairs, sides, exchanges} = require('./src/const')
 const _ = require('lodash')
 const Book = require('./src/Book')
 const calculate = require('./calc/arb_calc_new').calculate
+const verifyArbResults = require('./calc/arb_calc_new').verifyArbResults
 const fees = require('./calc/fees')
 // const exec = require('./src/executionApi')
 const exec = require('./src/Execution')
@@ -138,15 +139,17 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
   if (buyDepth.length > 5 && sellDepth.length > 5) {
     const arbRes = calculate(buyDepth, sellDepth, buyFees.taker, sellFees.taker,
       buyFees.withdrawal[pair.counter], sellFees.withdrawal[pair.base], buyBalance, pair)
-    if (profitTreshold(arbRes)) {
+    if (profitTreshold(arbRes) && verifyArbResults(arbRes)) {
       console.log(new Date())
       console.log(arbRes)
 
       execInProgress = true
-      //await tgLog(`going to get some money calculated profit: ${arbRes.profit}`)
+      // await tgLog(`going to get some money calculated profit: ${arbRes.profit}`)
       const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.buySize, arbRes.shortSize, buyExchName, sellExchName, pair)
       execInProgress = false
       process.exit()
+    } else if (profitTreshold(arbRes) && !verifyArbResults(arbRes)) {
+      console.log('wrong arb calculation', arbRes)
     }
 
     function isWorthToPrint (res) {

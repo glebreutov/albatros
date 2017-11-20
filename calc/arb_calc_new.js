@@ -67,9 +67,7 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
   log(`limit buy ${buyPrice}`)
   const sellPrice = profitableSellDepth.map(x => x.price).reduce((acc, val) => Math.max(acc, val), 0)
   log(`limit short ${sellPrice}`)
-  if (pair.counter === 'NEO') {
 
-  }
   const buyVol = orderSize(orderVol, pair, buyWithdrawal)
   const shortVol = parseFloat((buyVol - buyWithdrawal).toFixed(PRECISION))
   const shortAmt = sellPrice * shortVol
@@ -94,13 +92,42 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
   }
 }
 
+exports.verifyArbResults =  (arb) => {
+  return checkSaneNumber(arb.arbBuy) &&
+    checkSaneNumber(arb.arbSell) &&
+    checkSaneNumber(arb.buy) &&
+    checkSaneNumber(arb.sell) &&
+    checkSize(arb.buySize) &&
+    checkSize(arb.shortSize) &&
+    checkAmount(arb.buyAmt) &&
+    checkAmount(arb.sellAmt)
+}
+
+function checkSaneNumber (price) {
+  return typeof price === 'number' && price > 0 && price < Number.MAX_SAFE_INTEGER
+}
+
+function checkSize (size, currency) {
+  const saneNumber = checkSaneNumber(size)
+  const btcSize = size >= 0.01 && (['BTC', 'ZEC'].includes(currency))
+  const othersSize = size >= 0.1 && !['BTC', 'ZEC'].includes(currency)
+  return saneNumber && (btcSize || othersSize)
+}
+
+function checkAmount (amnt) {
+  return checkSaneNumber(amnt) && amnt >= 0.0005
+}
+
 function orderSize (size, pair, withdrawalFee) {
   if (pair.counter === 'NEO') {
-    const newSize = parseFloat(size.toFixed(0)) + withdrawalFee
-    if (newSize <= size) {
-      return newSize
+    const newSizeUp = parseFloat(size.toFixed(0)) + withdrawalFee
+    const newSizeDown = parseFloat(size.toFixed(0)) + withdrawalFee - 1
+    if (newSizeUp <= size) {
+      return newSizeUp
+    } else if (newSizeDown > 0) {
+      return newSizeDown
     } else {
-      return parseFloat(size.toFixed(0)) + withdrawalFee - 1
+      return 0
     }
   } else {
     return parseFloat(size.toFixed(PRECISION))

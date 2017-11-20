@@ -38,7 +38,6 @@ async function sellOrder () {
   console.log(cancelStatus)
 }
 
-
 async function showWallets () {
   // const targetBalance = await exec.balance('BITF', 'ETH')
   // console.log(targetBalance)
@@ -62,6 +61,20 @@ async function showWallets () {
 
 // test().then()
 
-//showWallets().then()
+// showWallets().then()
 
+function outs (sellRemains, buyRemains) {
+  if (sellRemains === 0 && buyRemains === 0) {
+    // do nothing
+  } else if (sellRemains === buyRemains) {
+    // cancel buy
+    // cancel sell
+  } else if (sellRemains > buyRemains) {
+    // cancel buy order
+    // buy back sellRemains
+  } else if (sellRemains < buyRemains) {
+    // cancell sellOrder
+    // sell buyRemains
+  }
+}
 sellOrder().then()
