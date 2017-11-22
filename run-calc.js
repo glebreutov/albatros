@@ -145,7 +145,7 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
 
       execInProgress = true
       // await tgLog(`going to get some money calculated profit: ${arbRes.profit}`)
-      const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.buySize, arbRes.shortSize, buyExchName, sellExchName, pair)
+      // const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.buySize, arbRes.shortSize, buyExchName, sellExchName, pair)
       execInProgress = false
       process.exit()
     } else if (profitTreshold(arbRes) && !verifyArbResults(arbRes)) {
@@ -153,15 +153,15 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
     }
 
     function isWorthToPrint (res) {
+      const priceChanged = !prevArb || res.profit / (prevArb.profit - res.profit) > 0.1
       return res.profit > 0 &&
-        Date.now() - prevSendTime > 60000 &&
-        (!prevArb || res.profit / Math.abs(prevArb.profit - res.profit) > 0.1)
+        (priceChanged || Date.now() - prevSendTime > 60000)
     }
 
     if (isWorthToPrint(arbRes)) {
       prevSendTime = Date.now()
       prevArb = arbRes
-      tgLog(`${pair.counter} BITF ASK: ${arbRes.sell}, BTRX BID: ${arbRes.buy}. Clean profit is ${arbRes.profit}`)
+      tgLog(`${pair.counter} BITF ASK: ${arbRes.sell}, BTRX BID: ${arbRes.buy}. Clean profit is ${arbRes.profit}. ${arbRes.perc}%`)
     }
     // console.log(arbRes)
   }
