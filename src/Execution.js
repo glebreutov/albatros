@@ -18,10 +18,12 @@ function getDriver (code) {
  * @return OrderStatus
  */
 async function newOrder (exch, pair, price, size, side) {
+  resetBalance(exch)
   return getDriver(exch).newOrder(pair, price, size, side)
 }
 
 exports.closePositions = async (exch) => {
+  resetBalance(exch)
   return getDriver(exch).closePositions()
 }
 
@@ -42,10 +44,12 @@ exports.short = async(exch, pair, price, size) => {
 }
 
 exports.cancel = async (order) => {
+  resetBalance(order.exch)
   return getDriver(order.exch).cancel(order)
 }
 
 const withdraw = async (exch, assetId, amount, wallet) => {
+  resetBalance(exch)
   return getDriver(exch).withdraw(assetId, amount, wallet)
 }
 exports.withdraw = withdraw
@@ -83,12 +87,28 @@ exports.transferFunds = async (from, to, amount, assetId) => {
   while (true) {
     const updatedBalance = await balance(to, assetId)
     if (updatedBalance.ack && targetBalance.balance < updatedBalance.balance) {
+      resetBalance(to)
       return {ack: true}
     }
     await sleep(10000)
   }
 }
+const balances = {}
 
+function resetBalance (exch) {
+  if (balances[exch]) {
+    balances[exch].expired = true
+  }
+}
+exports.lazyBalance = async (exch, assetId) => {
+  if (!balances[exch] || balances[exch].expired) {
+    balances[exch] = {expired: false}
+  }
+  if (!balances[exch][assetId] || !balances[exch][assetId].ack) {
+    balances[exch][assetId] = await balance(exch, assetId)
+  }
+  return balances[exch][assetId]
+}
 exports.orderStatus = async (order) => {
   return getDriver(order.exch).orderStatus(order)
 }

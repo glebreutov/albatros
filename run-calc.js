@@ -136,7 +136,7 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
   // const buyBalance = exec.balance(buyExchName, pair.base)
   const buyBalance = 0.6
 
-  if (buyDepth.length > 5 && sellDepth.length > 5) {
+  if (buyDepth.length > 10 && sellDepth.length > 10) {
     const arbRes = calculate(buyDepth, sellDepth, buyFees.taker, sellFees.taker,
       buyFees.withdrawal[pair.counter], sellFees.withdrawal[pair.base], buyBalance, pair)
     if (profitTreshold(arbRes) && verifyArbResults(arbRes)) {
@@ -144,24 +144,23 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
       console.log(arbRes)
 
       execInProgress = true
-      // await tgLog(`going to get some money calculated profit: ${arbRes.profit}`)
       // const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.buySize, arbRes.shortSize, buyExchName, sellExchName, pair)
+      // process.exit()
       execInProgress = false
-      process.exit()
     } else if (profitTreshold(arbRes) && !verifyArbResults(arbRes)) {
       console.log('wrong arb calculation', arbRes)
     }
 
     function isWorthToPrint (res) {
-      const priceChanged = !prevArb || res.profit / (prevArb.profit - res.profit) > 0.1
-      return res.profit > 0 &&
-        (priceChanged || Date.now() - prevSendTime > 60000)
+      const priceChanged = !prevArb || ((res.profit - prevArb.profit) / (res.profit / 100)) >= 0.1
+      return res.profit >= 0.001 &&
+        (priceChanged || (Date.now() - prevSendTime) > 60000)
     }
 
     if (isWorthToPrint(arbRes)) {
       prevSendTime = Date.now()
       prevArb = arbRes
-      tgLog(`${pair.counter} BITF ASK: ${arbRes.sell}, BTRX BID: ${arbRes.buy}. Clean profit is ${arbRes.profit}. ${arbRes.perc}%`)
+      tgLog(`${pair.counter} BITF ASK: ${arbRes.sell}, BTRX BID: ${arbRes.buy}. Clean profit is ${arbRes.profit}. ${arbRes.perc}%. Size: ${arbRes.shortSize}`)
     }
     // console.log(arbRes)
   }
@@ -174,8 +173,8 @@ function onBitfinexBookUpdate (pair, data) {
   bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[2] < 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
   bitfinexBook.updateLevels(sides.ASK, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
   bitfinexBook.updateLevels(sides.BID, data.filter(d => d[2] > 0 && d[1] !== 0).map(d => [d[0], Math.abs(d[2])]))
-
   bitfinexBook.updateLevels(sides.BID, data.filter(d => d[1] === 0).map(d => [d[0], 0]))
+
   const bittrexBook = bittrexBooks[pair.display]
   if (!bittrexBooks.lastUpdated) {
     // console.log('Bittrex market data not ready')

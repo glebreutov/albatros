@@ -141,7 +141,7 @@ function checkSize (size, currency) {
 }
 
 function checkAmount (amnt) {
-  return checkSaneNumber(amnt) && amnt >= 0.0005
+  return checkSaneNumber(amnt) && amnt >= 0.001
 }
 
 function orderSize (size, pair, withdrawalFee) {

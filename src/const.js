@@ -20,7 +20,10 @@ module.exports = {
     BTCDASH: {base: 'BTC', counter: 'DASH', display: 'BTC-DASH'},
     BTCOMG: {base: 'BTC', counter: 'OMG', display: 'BTC-OMG'},
     BTCBCH: {base: 'BTC', counter: 'BCH', display: 'BTC-BCH'},
-    BTCNEO: {base: 'BTC', counter: 'NEO', display: 'BTC-NEO'}
+    BTCNEO: {base: 'BTC', counter: 'NEO', display: 'BTC-NEO'},
+    BTCIOTA: {base: 'BTC', counter: 'IOTA', display: 'BTC-IOTA'},
+    BTCXRP: {base: 'BTC', counter: 'XRP', display: 'BTC-XRP'},
+    BTCXMR: {base: 'BTC', counter: 'XMR', display: 'BTC-XMR'}
   },
   exchanges: {
     BITFINEX: 'BITF',

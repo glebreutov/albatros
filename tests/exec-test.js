@@ -31,11 +31,13 @@ bittrexDriver.setKeys(config.BTRX.key, config.BTRX.secret)
 // wallets
 // bitf btc margin 1BhEFhyZSfjXyQE77NvV3bSVNG8JChKhio
 // btrx btc 18FjdmsHGBVDVpELEsXTRqtXD7K6rj4owt
-async function sellOrder () {
-  const resp = await exec.sell('BTRX', pairs.USDTBTC, 10000, 0.1)
+async function withdraw () {
+  // const resp = await exec.sell('BTRX', pairs.USDTBTC, 10000, 0.1)
+  // console.log(resp)
+  // const cancelStatus = await exec.cancel(resp)
+  // console.log(cancelStatus)
+  const resp = await exec.withdraw('BITF', 'BTC', 0.2, '18FjdmsHGBVDVpELEsXTRqtXD7K6rj4owt')
   console.log(resp)
-  const cancelStatus = await exec.cancel(resp)
-  console.log(cancelStatus)
 }
 
 async function showWallets () {
@@ -77,4 +79,4 @@ function outs (sellRemains, buyRemains) {
     // sell buyRemains
   }
 }
-sellOrder().then()
+withdraw().then()
