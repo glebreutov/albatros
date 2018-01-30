@@ -27,7 +27,7 @@
     "node-bittrex-api": "git+https://github.com/dparlevliet/node.bittrex.api.git",
     "node-fetch": "^1.7.3",
     "node-telegram-bot-api": "^0.28.0",
-    "ws": "^3.2.0"
+    "ws": "^3.3.1"
   },
   "devDependencies": {
     "standard": "^10.0.3"
