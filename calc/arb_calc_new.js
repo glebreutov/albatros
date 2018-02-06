@@ -17,11 +17,6 @@ function calcBookAmount2 (v, money) {
   }
   return v.reduce(accumFx, start)
 }
-function val (buy, sell) {
-  const mid = Math.abs(buy + sell) / 2
-  const raw = 100 * (sell - buy) / mid
-  return Math.round(raw * 100) / 100
-}
 
 function calcSellSize (depth, maxSize) {
   const sum = depth.map(x => x.size).reduce((a, v) => a + v, 0)
@@ -98,6 +93,7 @@ function calculate (buyDepth, sellDepth, buyFee, sellFee,
   // console.log('short amt', shortAmt)
   const perc = (profit / (shortAmt / 100)).toFixed(4)
   return {
+    pair,
     profit: parseFloat(profit.toFixed(5)),
     rawProfit: shortAmt - buyAmt,
     // profitDescribe: `${shortAmt} * (1 - ${sellFee}) - ${buyAmt} * (1 + ${buyFee}) - ${buyWithdrawal} * ${buyPrice} - ${sellWithdrawal}`,
@@ -120,8 +116,8 @@ exports.verifyArbResults = (arb) => {
     checkSaneNumber(arb.arbSell) &&
     checkSaneNumber(arb.buy) &&
     checkSaneNumber(arb.sell) &&
-    checkSize(arb.buySize) &&
-    checkSize(arb.shortSize) &&
+    checkSize(arb.buySize, arb.pair.counter, arb.arbBuy) &&
+    checkSize(arb.shortSize, arb.pair.base, arb.arbSell) &&
     checkAmount(arb.buyAmt) &&
     checkAmount(arb.sellAmt)
 }
@@ -132,12 +128,12 @@ function checkSaneNumber (price) {
     price > 0 &&
     price < Number.MAX_SAFE_INTEGER
 }
-
-function checkSize (size, currency) {
+const BTC_MIN_DEPOSIT = 0.1
+function checkSize (size, currency, price) {
   const saneNumber = checkSaneNumber(size)
   const btcSize = size >= 0.01 && (['BTC', 'ZEC'].includes(currency))
   const othersSize = size >= 0.1 && !['BTC', 'ZEC'].includes(currency)
-  return saneNumber && (btcSize || othersSize)
+  return saneNumber && (btcSize || othersSize) && (price * size > BTC_MIN_DEPOSIT)
 }
 
 function checkAmount (amnt) {
@@ -166,7 +162,8 @@ function testValue () {
     {size: 0.5, price: 99.1},
     {size: 3, price: 99},
     {size: 0.001, price: 98.9},
-    {size: 2.1, price: 98.8}]
+    {size: 2.1, price: 98.8},
+    {size: 0.01, price: 98.8}]
 }
 
 // console.log('test with zero size', calcAmount(testValue(), 0))

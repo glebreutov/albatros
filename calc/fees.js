@@ -3,9 +3,9 @@ const feeMap = {
     taker: 0.004,
     maker: 0,
     withdrawal: {
-      BTC: 0.0005,
+      BTC: 0.0008,
       USDT: 2,
-      ETH: 0.01,
+      ETH: 0.0027,
       LTC: 0.001,
       ETC: 0.01,
       ZEC: 0.001,
@@ -29,12 +29,12 @@ const feeMap = {
     withdrawal: {
       BTC: 0.001,
       USDT: 5,
-      ETH: 0.002,
+      ETH: 0.006,
       LTC: 0.01,
       ETC: 0.01,
       ZEC: 0.005,
       DASH: 0.002,
-      OMG: 0.1,
+      OMG: 0.35,
       BCH: 0.001,
       NEO: 0.025,
 

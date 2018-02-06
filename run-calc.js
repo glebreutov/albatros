@@ -20,7 +20,7 @@ function adaptBook (book, side) {
 }
 
 function profitTreshold (arbRes) {
-  return arbRes.profit >= 0.0005
+  return arbRes.profit >= 0.002
 }
 
 // ws apis
@@ -134,7 +134,7 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
   const buyFees = fees.getFees(buyExchName)
   const sellFees = fees.getFees(sellExchName)
   // const buyBalance = exec.balance(buyExchName, pair.base)
-  const buyBalance = 0.6
+  const buyBalance = 0.45
 
   if (buyDepth.length > 10 && sellDepth.length > 10) {
     const arbRes = calculate(buyDepth, sellDepth, buyFees.taker, sellFees.taker,
@@ -144,8 +144,8 @@ async function calc (book1, book2, buyExchName, sellExchName, pair) {
       console.log(arbRes)
 
       execInProgress = true
-      // const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.buySize, arbRes.shortSize, buyExchName, sellExchName, pair)
-      // process.exit()
+      const result = await syncExec(arbRes.arbBuy, arbRes.arbSell, arbRes.buySize, arbRes.shortSize, buyExchName, sellExchName, pair)
+      process.exit()
       execInProgress = false
     } else if (profitTreshold(arbRes) && !verifyArbResults(arbRes)) {
       console.log('wrong arb calculation', arbRes)

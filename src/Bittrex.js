@@ -21,7 +21,7 @@ class BittrexApi extends EventEmitter {
   constructor (...args) {
     super(...args)
     debug('Creating BittrexApi')
-    bittrex.options({verbose: true})
+    //bittrex.options({verbose: true})
     bind([
       'onSubscriptionMessage'
     ], this)
